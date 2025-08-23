@@ -5,14 +5,15 @@
 // --- Plate parameters ---
 num_x       = 4;
 num_y       = 4;
-marble_d    = 16;        // mm diameter of marble
+pla_shrink  = 0.2;       // mm that printing shrinks the hole
+marble_d    = 17;        // mm diameter of largest marble (sphere)
+hole_d      = 15.5 + pla_shrink; // mm slightly smaller than the diameter of the smallest marble
 pitch       = 16.67;     // mm (center-to-center)
 margin      = 10;        // mm edge margin beyond outer hole edges
 thickness   = 3;         // mm
 led_height  = 2.15;      // mm
 standoff    = led_height + marble_d / 2; // height of standoffs
 standoff_d  = 3;         // diameter of standoffs
-//standoff_spacing = 25;   // mm spacing between perimeter standoffs
 
 // --- Quality settings ---
 $fn_fast    = 64;        // low-poly for speed
@@ -21,49 +22,39 @@ $fn_final   = 128;       // smooth for export
 // --- Auto quality based on preview mode ---
 $fn_holes   = $preview ? $fn_fast : $fn_final;
 
-module hole_plate(nx, ny, hd, p, m, t) {
-    grid_span_x = (nx - 1) * p;
-    grid_span_y = (ny - 1) * p;
+module hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, thickness, standoff, standoff_d) {
+    grid_span_x = (num_x - 1) * pitch;
+    grid_span_y = (num_y - 1) * pitch;
 
-    plate_x = grid_span_x + hd + 2 * m;
-    plate_y = grid_span_y + hd + 2 * m;
+    plate_x = grid_span_x + hole_d + 2 * margin;
+    plate_y = grid_span_y + hole_d + 2 * margin;
 
-    inset = m / 2; // NEW: inset distance for perimeter standoffs
+    // Calculate vertical offset so sphere cuts hole_d at top face
+    R = marble_d / 2;
+    r = hole_d / 2;
+    offset = sqrt(R*R - r*r);
 
     union() {
         // Plate with holes
         difference() {
-            cube([plate_x, plate_y, t], center = true);
+            cube([plate_x, plate_y, thickness], center = true);
 
             // Holes
-            for (i = [0 : nx - 1])
-                for (j = [0 : ny - 1]) {
-                    x = -grid_span_x/2 + i * p;
-                    y = -grid_span_y/2 + j * p;
-                    translate([x, y])
-                        sphere(d = hd, $fn = $fn_holes);
+            for (i = [0 : num_x - 1])
+                for (j = [0 : num_y - 1]) {
+                    x = -grid_span_x/2 + i * pitch;
+                    y = -grid_span_y/2 + j * pitch;
+                    // Place sphere so bottom face hole = hole_d
+                    translate([x, y, thickness/2 - offset])
+                        sphere(d = marble_d, $fn = $fn_holes);
                 }
         }
 
-/*        
-        // --- Perimeter standoffs evenly spaced, inset by margin/2 ---
-        // Bottom & Top edges
-        for (xpos = [-plate_x/2 + inset + standoff_spacing/2 : standoff_spacing : plate_x/2 - inset - standoff_spacing/2])
-            for (ypos = [-plate_y/2 + inset, plate_y/2 - inset])
-                translate([xpos, ypos, -standoff])
-                    cylinder(h = standoff, d = standoff_d, $fn = $fn_holes);
-
-        // Left & Right edges
-        for (ypos = [-plate_y/2 + inset + standoff_spacing/2 : standoff_spacing : plate_y/2 - inset - standoff_spacing/2])
-            for (xpos = [-plate_x/2 + inset, plate_x/2 - inset])
-                translate([xpos, ypos, -standoff])
-                    cylinder(h = standoff, d = standoff_d, $fn = $fn_holes);
-*/
-        // --- Between-hole standoffs ---
-        for (i = [0 : nx])
-            for (j = [0 : ny]) {
-                x = -grid_span_x/2 + (i - 0.5) * p;
-                y = -grid_span_y/2 + (j - 0.5) * p;
+        // Standoffs
+        for (i = [0 : num_x])
+            for (j = [0 : num_y]) {
+                x = -grid_span_x/2 + (i - 0.5) * pitch;
+                y = -grid_span_y/2 + (j - 0.5) * pitch;
                 translate([x, y, -standoff])
                     cylinder(h = standoff, d = standoff_d, $fn = $fn_holes);
             }
@@ -71,4 +62,4 @@ module hole_plate(nx, ny, hd, p, m, t) {
 }
 
 // --- Call ---
-hole_plate(num_x, num_y, marble_d, pitch, margin, thickness);
+hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, thickness, standoff, standoff_d);
