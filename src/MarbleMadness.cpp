@@ -1,6 +1,5 @@
 #include "main.h"
 #include "debug.h"
-//#include "settings.h"
 #include "render.h"
 #include "MarbleMadness.h"
 

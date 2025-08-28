@@ -11,15 +11,6 @@ boolean leds_dirty = true;
 // have one unused space that we an return when something is out of bounds to make exception handling simpler
 CRGB leds[NUM_STRIPS * NUM_LEDS_PER_STRIP + 1];
 
-//
-// I have implemented two different X,Y mapping modes. The first pairs adjacent strips of LEDs into a single x coordinate
-// as they are paired in the triangle columns. The second (WIDERTHANTALLER) maps each strip to a separate x coordinate.
-//
-#define STRIP_0_NUM_COLS 6
-#define STRIP_1_NUM_COLS 4
-#define STRIP_2_NUM_COLS 4
-#define STRIP_3_NUM_COLS 6
-
 uint16_t XY(uint16_t x, uint16_t y)
 {
   // any out of bounds address maps to the hidden pixel
@@ -29,6 +20,15 @@ uint16_t XY(uint16_t x, uint16_t y)
   return (y * NUM_COLS + x);
   
 #ifdef COMPLEX_SHAPE    
+//
+// I have implemented two different X,Y mapping modes. The first pairs adjacent strips of LEDs into a single x coordinate
+// as they are paired in the triangle columns. The second (WIDERTHANTALLER) maps each strip to a separate x coordinate.
+//
+#define STRIP_0_NUM_COLS 6
+#define STRIP_1_NUM_COLS 4
+#define STRIP_2_NUM_COLS 4
+#define STRIP_3_NUM_COLS 6
+
   const uint8_t XYTable[NUM_ROWS * NUM_COLS / 2] = {
       //
       // This array helps translate from a (x,y) coordinate to the correct offset in the leds[] array.
