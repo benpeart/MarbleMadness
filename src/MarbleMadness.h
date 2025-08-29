@@ -1,8 +1,6 @@
 #ifndef MARBLEMADNESS_H
 #define MARBLEMADNESS_H
 
-void mode_marbleroller();
-
 #ifdef DEBUG
 // test the wiring and ensure all pixels light up correctly
 // Q: Why does led[300] ==> led[312] not light up?

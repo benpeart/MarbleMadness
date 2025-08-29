@@ -4,6 +4,9 @@
 #include "modes.h"
 
 #include "MarbleMadness.h"
+#include "MarbleRoller.h"
+#include "XYfire.h"
+#include "xymatrix.h"
 
 #ifdef TIME
 #include "RealTimeClock.h"
@@ -23,6 +26,8 @@ struct MarbleMadnessMode
 // This look up table lists each of the display/animation drawing functions
 MarbleMadnessMode MarbleMadnessLUT[]{
     {mode_marbleroller, "MarbleRoller", true},
+    {mode_xy_fire, "Fire", true},
+    {mode_xy_matrix, "Matrix", true},
 #ifdef DEBUG
     {mode_xy_test, "xy_test", true},
     {mode_test, "test", true},
@@ -63,6 +68,14 @@ const char *getMarbleMadnessMode(int mode)
         return NULL;
 
     return MarbleMadnessLUT[mode].modeName;
+}
+
+bool getMarbleMadnessModeShowInRESTAPI(int mode)
+{
+    if (mode < 0 || mode >= marblemadnessModes)
+        return false;
+
+    return MarbleMadnessLUT[mode].showInRESTAPI;
 }
 
 // All Pixels off

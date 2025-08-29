@@ -17,9 +17,24 @@ uint16_t XY(uint16_t x, uint16_t y)
   if ((x < 0) || (x >= NUM_COLS) || (y < 0) || (y >= NUM_ROWS))
     return OUTOFBOUNDS;
 
-  return (y * NUM_COLS + x);
-  
-#ifdef COMPLEX_SHAPE    
+  // Calculate the index based on the S-shaped mapping
+  // 0,0 is top left, 18,18 is bottom right
+  // each strip is a single row of the XY matrix
+  if (y % 2 == 0)
+  {
+    // Even row: left-to-right
+    return y * NUM_COLS + x;
+  }
+  else
+  {
+    // Odd row: right-to-left
+    return y * NUM_COLS + (NUM_COLS - 1 - x);
+  }
+
+  return OUTOFBOUNDS; // should never get here
+}
+
+#ifdef COMPLEX_SHAPE
 //
 // I have implemented two different X,Y mapping modes. The first pairs adjacent strips of LEDs into a single x coordinate
 // as they are paired in the triangle columns. The second (WIDERTHANTALLER) maps each strip to a separate x coordinate.
@@ -29,6 +44,8 @@ uint16_t XY(uint16_t x, uint16_t y)
 #define STRIP_2_NUM_COLS 4
 #define STRIP_3_NUM_COLS 6
 
+int XY(int x, int y)
+{
   const uint8_t XYTable[NUM_ROWS * NUM_COLS / 2] = {
       //
       // This array helps translate from a (x,y) coordinate to the correct offset in the leds[] array.
@@ -116,5 +133,5 @@ uint16_t XY(uint16_t x, uint16_t y)
   }
 
   return strip * NUM_LEDS_PER_STRIP + stripOffset;
-#endif // COMPLEX_SHAPE  
 }
+#endif // COMPLEX_SHAPE

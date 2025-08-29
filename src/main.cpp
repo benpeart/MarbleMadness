@@ -136,6 +136,7 @@ void getModes(AsyncWebServerRequest *request)
   // add the names
   for (int x = 0; x < marblemadnessModes; x++)
   {
+    if (getMarbleMadnessModeShowInRESTAPI(x))
       array.add(getMarbleMadnessMode(x));
   }
 
@@ -205,8 +206,8 @@ void setup()
 #endif // REST
 #endif // WIFI
 
-  // initialize the random number generator using noise from an unconnected analog pin
-  randomSeed(esp_random()); // Get a random number from the hardware RNG
+  // initialize the random number generator using the ESP32 hardware RNG
+  randomSeed(esp_random());
 
   // intialize the LED strips for parallel output
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_1, COLOR_ORDER>(leds + 0 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
@@ -214,7 +215,7 @@ void setup()
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_2, COLOR_ORDER>(leds + 1 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_3, COLOR_ORDER>(leds + 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_4, COLOR_ORDER>(leds + 3 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-#endif  
+#endif
   leds_dirty = true;
   DB_PRINTLN(getMarbleMadnessMode(settings.mode));
 }
@@ -242,14 +243,14 @@ void loop()
   // if we have changes in the LEDs, show the updated frame
   if (leds_dirty)
   {
-//#define DEBUG_SPINNER
+// #define DEBUG_SPINNER
 #ifdef DEBUG_SPINNER
     static const char *spinner = "|/-\\";
     static int spinner_index = 0;
 
     DB_PRINTF("\r%c", spinner[spinner_index]);
     spinner_index = (spinner_index + 1) % sizeof(spinner);
-#endif // DEBUG_SPINNER
+#endif                  // DEBUG_SPINNER
     leds_dirty = false; // clear the dirty flag before showing the frame or changes via asyncronous REST calls will fail to be drawn
     FastLED.show();
   }
