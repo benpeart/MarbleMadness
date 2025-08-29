@@ -50,7 +50,7 @@ module hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, plate_height, s
                     y = -grid_span_y/2 + j * pitch;
                     // Place sphere so bottom face hole = hole_d
                     translate([x, y, plate_height/2 - offset])
-                        %sphere(d = marble_d, $fn = $fn_holes);
+                        sphere(d = marble_d, $fn = $fn_holes);
                 }
         }
 
@@ -99,10 +99,24 @@ module hole_plate_with_box() {
     plate_x = grid_span_x + hole_d + 2 * margin;
     plate_y = grid_span_y + hole_d + 2 * margin;
 
-    // Shadow box around the marble plate
-    shadow_box_height = lip_height + plate_height + standoff_height + plate_height + plate_height / 2;
-    translate([0, 0, lip_height -shadow_box_height/2 + plate_height/2])
-        %shadow_box(plate_x, plate_y, shadow_box_height, wall_thickness, lip_width, lip_height);
+    // remove a notch for the LED power/data lines
+    difference() {
+        // Shadow box around the marble plate
+        shadow_box_height = lip_height + plate_height + standoff_height + plate_height + plate_height / 2;
+        translate([0, 0, lip_height -shadow_box_height/2 + plate_height/2])
+            shadow_box(plate_x, plate_y, shadow_box_height, wall_thickness, lip_width, lip_height);
+           
+        // Notch
+        notch_width = 2;
+        notch_height = plate_height * 2.5;
+        outer_x = plate_x + 2 * wall_thickness;
+        grid_span_y = (num_y - 1) * pitch;
+        x = -outer_x/2 + wall_thickness / 2 - 0.01;
+        y = grid_span_y/2 + 0 * pitch;
+        z = -(standoff_height + notch_height/2 - plate_height / 2);
+        translate([x - 0.01, y, z])
+            cube([wall_thickness + 0.05, notch_width, notch_height + 0.01], center = true);
+    }
 
     // Marble plate itself
     hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, plate_height, standoff_height, standoff_d);
