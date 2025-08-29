@@ -1,7 +1,12 @@
 #include "main.h"
+#include "settings.h"
 #include "debug.h"
 #include "render.h"
 #include "MarbleMadness.h"
+
+#define DEFAULT_MILLIS 75
+#define MIN_MILLIS 0
+#define MAX_MILLIS (4 * DEFAULT_MILLIS)
 
 #ifdef DEBUG
 // test the wiring and ensure all pixels light up correctly
@@ -9,8 +14,10 @@ void mode_test()
 {
   static int index = 0;
 
-  EVERY_N_MILLISECONDS(50)
+  EVERY_N_MILLIS_I(timer, DEFAULT_MILLIS)
   {
+    timer.setPeriod(MAX_MILLIS - map(settings.speed, MIN_SPEED, MAX_SPEED, MIN_MILLIS, MAX_MILLIS));
+
     // erase the last pixel
     leds[index] = CRGB::Black; // off
 
@@ -32,8 +39,10 @@ void mode_xy_test()
   static int x = -1, y = 0;
   int index;
 
-  EVERY_N_MILLISECONDS(75)
+  EVERY_N_MILLIS_I(timer, DEFAULT_MILLIS)
   {
+    timer.setPeriod(MAX_MILLIS - map(settings.speed, MIN_SPEED, MAX_SPEED, MIN_MILLIS, MAX_MILLIS));
+
     // erase the last pixel
     index = XY(x, y);
     leds[index] = CRGB::Black; // off

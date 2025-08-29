@@ -5,7 +5,7 @@
 #include "WiFiHelpers.h"
 #include <ESPAsyncWiFiManager.h>
 #include <ESPAsyncWebServer.h>
-#include <SPIFFS.h>
+#include <LittleFS.h>
 #include "settings.h"
 #ifdef OTA
 #include <ElegantOTA.h>
@@ -85,15 +85,15 @@ void wifi_setup(void)
         DB_PRINTLN(WiFi.localIP());
     }
 
-    // Setup the web UI by serveing static files from SPIFFS
-    if (!SPIFFS.begin(false))
+    // Setup the web UI by serveing static files from LittleFS
+    if (!LittleFS.begin(false))
     {
-        DB_PRINTLN("SPIFFS mount failed");
+        DB_PRINTLN("LittleFS mount failed");
     }
     else
     {
-        webServer.serveStatic("/", SPIFFS, "/").setDefaultFile("index.html");
-        DB_PRINTLN("SPIFFS mount success");
+        webServer.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
+        DB_PRINTLN("LittleFS mount success");
     }
     webServer.onNotFound([](AsyncWebServerRequest *request)
                          { request->send(404, "text/plain", "FileNotFound"); });
