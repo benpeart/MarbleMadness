@@ -7,9 +7,8 @@
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include "settings.h"
-#ifdef OTA
-#include <ElegantOTA.h>
-#endif // OTA
+#include <ESPmDNS.h>
+#include <ArduinoOTA.h>
 
 #ifdef TIME
 #include "RealTimeClock.h"
@@ -85,6 +84,50 @@ void wifi_setup(void)
         DB_PRINTLN(WiFi.localIP());
     }
 
+    // Setup for OTA updates
+    ArduinoOTA.setHostname(hostname);
+    ArduinoOTA
+        .onStart([]()
+                 {
+                    String type;
+                    if (ArduinoOTA.getCommand() == U_FLASH)
+                    {
+                        type = "sketch";
+                    } else { // U_SPIFFS
+                        type = "filesystem";
+                        // TODO: is this needed?
+                        // SPIFFS.end();
+                    }
+                    DB_PRINTLN("Start updating " + type); })
+        .onEnd([]()
+               { DB_PRINTLN("\nEnd"); })
+        .onProgress([](unsigned int progress, unsigned int total)
+                    { DB_PRINTF("Progress: %u%%\r", (progress / (total / 100))); })
+        .onError([](ota_error_t error)
+                 {
+                    DB_PRINTF("Error[%u]: ", error);
+                    if (error == OTA_AUTH_ERROR) DB_PRINTLN("Auth Failed");
+                    else if (error == OTA_BEGIN_ERROR) DB_PRINTLN("Begin Failed");
+                    else if (error == OTA_CONNECT_ERROR) DB_PRINTLN("Connect Failed");
+                    else if (error == OTA_RECEIVE_ERROR) DB_PRINTLN("Receive Failed");
+                    else if (error == OTA_END_ERROR) DB_PRINTLN("End Failed"); });
+
+    ArduinoOTA.begin();
+    DB_PRINTLN("Ready for OTA updates");
+
+    // Start MDNS server
+    if (MDNS.begin(hostname))
+    {
+        // Advertise HTTP service on port 80
+        MDNS.addService("http", "tcp", 80);
+        DB_PRINT("MDNS responder started, name: ");
+        DB_PRINTLN(hostname);
+    }
+    else
+    {
+        DB_PRINTLN("Could not start MDNS responder");
+    }
+
     // Setup the web UI by serveing static files from LittleFS
     if (!LittleFS.begin(false))
     {
@@ -101,11 +144,6 @@ void wifi_setup(void)
     httpServer->addHandler(new SPIFFSEditor(SPIFFS));
 #endif // SPIFFSEDITOR
 
-#ifdef OTA
-    // Add the ElegantOTA UI and require a username/password to update the firmware
-    ElegantOTA.begin(&webServer, "admin", "admin");
-    DB_PRINTLN(F("OTA web server started."));
-#endif
     webServer.begin();
 
 #ifdef TIME
@@ -122,11 +160,10 @@ void wifi_loop(void)
     drd->loop();
 #endif
 
-#ifdef OTA
-    // will reboot the system 2 seconds after an upgrade
-    ElegantOTA.loop();
-#endif
+    // check for OTA updates
+    ArduinoOTA.handle();
 
+    // if we lost WiFi, try to reconnect
     if ((WiFi.status() != WL_CONNECTED))
     {
         DB_PRINTLN(F("\nWiFi lost. Attempting to reconnect"));
