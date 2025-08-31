@@ -12,18 +12,6 @@ Marble Madness will then reboot and connect using the updated settings.
 Any time Marble Madness cannot connect with the current WiFi settings, it will go into AP mode so that the settings can be updated.
 If you are still having problems, reboot Marble Madness (unplug/plug) twice a few seconds apart (less than 10) and the settings will be cleared and it will go into AP mode.
 
-## Over-the-air updates
-
-**Important note**: Over-the-air updates can only be done when Marble Madness is powered on and connected to the internet but in 'off' mode.
-
-1. Build your new image
-2. On Marble Madness (or via the app) select the mode 'off.'
-3. In a web browser, go to the URL http://MarbleMadness/update
-4. Login with the correct credentials (default is admin/admin)
-5. Ensure the "Firmware" button is selected and click the "Choose File" button
-6. Find the firmware you just built (the default filename is .pio/build/node32s/firmware.bin) and choose "Open"
-7. The firmware will be uploaded to Marble Madness and then it will reboot
-
 ## REST API documentation
 
 Marble Madness connects to the WiFi with the device name "MarbleMadness." The web ui and REST API can be found at http://MarbleMadness/. 

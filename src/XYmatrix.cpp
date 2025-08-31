@@ -13,22 +13,27 @@ void mode_xy_matrix()
     EVERY_N_MILLIS_I(timer, DEFAULT_MILLIS) // falling speed
     {
         timer.setPeriod(MAX_MILLIS - map(settings.speed, MIN_SPEED, MAX_SPEED, MIN_MILLIS, MAX_MILLIS));
+
         // move code downward
         // start with lowest row to allow proper overlapping on each column
         for (int8_t row = NUM_ROWS - 1; row >= 0; row--)
         {
             for (int8_t col = 0; col < NUM_COLS; col++)
             {
+                // if this is a new spawn
                 if (leds[XY(col, row)] == CRGB(175, 255, 175))
                 {
-                    leds[XY(col, row)] = CRGB(27, 130, 39); // create trail
+                    // turn it into the beginning of a trail
+                    leds[XY(col, row)] = CRGB(27, 130, 39);
+
+                    // if not on the bottom row, add a new code pixel below it
                     if (row < NUM_ROWS - 1)
                         leds[XY(col, row + 1)] = CRGB(175, 255, 175);
                 }
             }
         }
 
-        // fade all leds
+        // fade all trailing leds
         for (int i = 0; i < NUM_STRIPS * NUM_LEDS_PER_STRIP; i++)
         {
             if (leds[i].g != 255)
