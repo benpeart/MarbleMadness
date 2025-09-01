@@ -3,8 +3,8 @@
 // =========================
 
 /* [Plate parameters] */
-num_x       = 19;
-num_y       = 19;
+num_x       = 4;
+num_y       = 4;
 marble_d    = 16.18;     // mm diameter of largest marble (sphere)
 hole_d      = 15.75;     // mm slightly smaller than the diameter of the smallest marble
 pitch       = 16.67;     // mm (center-to-center)
@@ -13,6 +13,9 @@ plate_height = 3;        // mm
 led_height  = 2.15;      // mm
 standoff_height = led_height + marble_d / 2; // height of standoffs
 standoff_d  = 3;         // diameter of standoffs
+notch_width = 11;        // 10mm for the strip and 1mm slop
+notch_height = 1;
+
 
 /* [Shadow Box parameters] */
 wall_thickness = 3;
@@ -20,7 +23,7 @@ lip_width = 4;
 lip_height = 3;
 
 /* [Quality settings] */
-$fn_fast    = 24;        // low-poly for speed
+$fn_fast    = 64;        // low-poly for speed
 $fn_final   = 96;        // smooth for export
 
 // --- Auto quality based on preview mode ---
@@ -54,6 +57,29 @@ module hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, plate_height, s
                 }
         }
 
+        difference() {
+            // Louvers to prevent light bleeding between cells
+            for (i = [0 : num_x - 1])
+                for (j = [0 : num_y - 1]) {
+                    x = -grid_span_x/2 + i * pitch;
+                    y = -grid_span_y/2 + j * pitch;
+                    translate([x, y, -standoff_height - plate_height/2])
+                        difference() {
+                            cylinder(h = standoff_height, d = marble_d + wall_thickness/3, $fn = $fn_holes);
+                            cylinder(h = standoff_height + 0.01, d = marble_d, $fn = $fn_holes);
+                        }
+                }
+
+            // remove notches for the led strips
+            for (i = [0 : num_x - 1])
+                for (j = [0 : num_y - 1]) {
+                    x = -grid_span_x/2 + i * pitch;
+                    y = -grid_span_y/2 + j * pitch;
+                    translate([x, y, -standoff_height - plate_height/2 + notch_height/2])
+                        cube([plate_x, notch_width, notch_height + 0.01], center = true);
+            }
+        }
+/*
         // Standoffs
         for (i = [0 : num_x])
             for (j = [0 : num_y]) {
@@ -62,6 +88,7 @@ module hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, plate_height, s
                 translate([x, y, -standoff_height - plate_height/2])
                     cylinder(h = standoff_height, d = standoff_d, $fn = $fn_holes);
             }
+*/        
     }
 }
 

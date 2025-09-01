@@ -32,8 +32,7 @@ CRGB marble_colors[] = {
     CRGB::SeaGreen, CRGB::Seashell, CRGB::Sienna, CRGB::Silver, CRGB::SkyBlue, CRGB::SlateBlue,
     CRGB::SlateGray, CRGB::Snow, CRGB::SpringGreen, CRGB::SteelBlue, CRGB::Tan, CRGB::Teal,
     CRGB::Thistle, CRGB::Tomato, CRGB::Turquoise, CRGB::Violet, CRGB::Wheat, CRGB::White,
-    CRGB::WhiteSmoke, CRGB::Yellow, CRGB::YellowGreen
-};
+    CRGB::WhiteSmoke, CRGB::Yellow, CRGB::YellowGreen};
 int marble_count = (sizeof(marble_colors) / sizeof(marble_colors[0])); // total number of valid marble colors in table
 
 bool is_marble(CRGB color)
@@ -52,8 +51,8 @@ void mode_marbleroller()
     {
         timer.setPeriod(MAX_MILLIS - map(settings.speed, MIN_SPEED, MAX_SPEED, MIN_MILLIS, MAX_MILLIS));
 
-        // move marble onward
         // start with last LED to allow proper overlapping
+        bool emptyScreen = true;
         for (int i = 0; i < NUM_STRIPS * NUM_LEDS_PER_STRIP; i++)
         {
             // if this is a marble
@@ -61,21 +60,19 @@ void mode_marbleroller()
             {
                 // if not on the last LED, add a new marble in the next position of the same color
                 if (i > 0)
+                {
                     leds[i - 1] = leds[i];
+                    emptyScreen = false;
+                }
 
                 // turn the old marble position into the beginning of a trail
-                leds[i].nscale8(128);
+                leds[i].fadeToBlackBy(64); // Dim by 75%
             }
-        }
-
-        // fade all trailing leds and check for empty screen to ensure marble spawn
-        bool emptyScreen = true;
-        for (int i = 0; i < NUM_STRIPS * NUM_LEDS_PER_STRIP; i++)
-        {
-            if (!is_marble(leds[i]))
-                leds[i].nscale8(64);
             else
-                emptyScreen = false;
+            {
+                // Fade all trailing LEDs
+                leds[i].fadeToBlackBy(191); // Dim by 25%
+            }
         }
 
         // spawn new falling marble at beginning of run
