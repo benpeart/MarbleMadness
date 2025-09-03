@@ -216,6 +216,7 @@ void setup()
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_3, COLOR_ORDER>(leds + 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_4, COLOR_ORDER>(leds + 3 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
 #endif
+  FastLED.setBrightness(dim8_raw(settings.brightness));
   leds_dirty = true;
   DB_PRINTLN(getMarbleMadnessMode(settings.mode));
 }

@@ -120,7 +120,7 @@ int ConvertMilitaryTime(int hours)
 
 CRGB BlendColors(CRGB rgb)
 {
-    return blend(rgb, settings.clockColor, 200);
+    return blend(rgb, settings.clockColor, 128);
 }
 
 void drawNullClock()
@@ -207,7 +207,7 @@ void displayHands(int hours, int minutes, int seconds, CRGB color)
     uint16_t b = HEIGHT * 128;
     uint16_t base_theta = 65536 * 3 / 4;
 
-// Turn off the second hand as it is hard to differentiate from the minute hand
+    // Turn off the second hand as it is hard to differentiate from the minute hand
     // second hand with sweep action
     uint16_t theta = seconds * 65536 / 60;
 #ifdef SECOND_HANDS
