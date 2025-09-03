@@ -10,6 +10,8 @@
 #define OTA
 #define REST
 #define TIME
+// #define DEBUG_SPINNER
+#define DEBUG_FPS
 //#define SPIFFSEDITOR
 #endif
 

@@ -244,14 +244,27 @@ void loop()
   // if we have changes in the LEDs, show the updated frame
   if (leds_dirty)
   {
-// #define DEBUG_SPINNER
 #ifdef DEBUG_SPINNER
     static const char *spinner = "|/-\\";
     static int spinner_index = 0;
 
     DB_PRINTF("\r%c", spinner[spinner_index]);
     spinner_index = (spinner_index + 1) % sizeof(spinner);
-#endif                  // DEBUG_SPINNER
+#endif // DEBUG_SPINNER
+#ifdef DEBUG_FPS
+    static unsigned long lastFPS = 0;
+    static uint16_t frames = 0;
+    frames++;
+
+    // Once per second, print FPS
+    EVERY_N_MILLISECONDS(1000)
+    {
+      Serial.print("FPS: ");
+      Serial.println(frames);
+      frames = 0;
+    }
+#endif // DEBUG_FPS
+
     leds_dirty = false; // clear the dirty flag before showing the frame or changes via asyncronous REST calls will fail to be drawn
     FastLED.show();
   }

@@ -69,11 +69,13 @@ int setClockFace(const char *clockFace)
     return settings.clockFace;
 }
 
-int setClockColor(const CRGB clockColor)
+CRGB setClockColor(const CRGB clockColor)
 {
     settings.clockColor = clockColor;
     leds_dirty = true;
     DB_PRINTF("setClockColor = #%06X\r\n", settings.clockColor.r << 16 | settings.clockColor.g << 8 | settings.clockColor.b);
+
+    return settings.clockColor;
 }
 
 //
