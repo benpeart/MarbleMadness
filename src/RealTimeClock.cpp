@@ -118,13 +118,14 @@ int ConvertMilitaryTime(int hours)
     return hours;
 }
 
-CRGB BlendColors(CRGB rgb)
-{
-    return blend(rgb, settings.clockColor, 128);
-}
-
 void drawNullClock()
 {
+}
+
+void setLED(int x, int y)
+{
+    int index = XY(x, y);
+    leds[index] = blend(leds[index], settings.clockColor, 128);
 }
 
 void drawDigitalClock()
@@ -172,7 +173,7 @@ void drawDigitalClock()
         }
 
         if (leds_dirty)
-            displayNumbers(digit1, digit2, digit3, digit4, BlendColors);
+            displayNumbers(digit1, digit2, digit3, digit4, setLED);
     }
 }
 
