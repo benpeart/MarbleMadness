@@ -3,8 +3,8 @@
 // =========================
 
 /* [Plate parameters] */
-num_x       = 4;
-num_y       = 4;
+num_x       = 19;
+num_y       = 19;
 marble_d    = 16.18;     // mm diameter of largest marble (sphere)
 hole_d      = 15.75;     // mm slightly smaller than the diameter of the smallest marble
 pitch       = 16.67;     // mm (center-to-center)
@@ -13,6 +13,7 @@ plate_height = 3;        // mm
 led_height  = 2.15;      // mm
 standoff_height = led_height + marble_d / 2; // height of standoffs
 standoff_d  = 3;         // diameter of standoffs
+backplate_height = 6;   // match the foam board I'm using
 notch_width = 11;        // 10mm for the strip and 1mm slop
 notch_height = 1;
 
@@ -119,8 +120,8 @@ module shadow_box(inner_x, inner_y, height, wall_thickness, lip_width, lip_heigh
 // Modified Call with Shadow Box
 // =========================
 
-render_shadow_box = false;
-render_marble_plate = true;
+render_shadow_box = true;
+render_marble_plate = false;
 render_back_plate = false;
 
 module hole_plate_with_box() {
@@ -129,22 +130,22 @@ module hole_plate_with_box() {
     grid_span_y = (num_y - 1) * pitch;
     plate_x = grid_span_x + hole_d + 2 * margin;
     plate_y = grid_span_y + hole_d + 2 * margin;
-
+    
     if (render_shadow_box)
         difference() {
             // Shadow box around the marble plate
-            shadow_box_height = lip_height + plate_height + standoff_height + plate_height + plate_height / 2;
+            shadow_box_height = lip_height + plate_height + standoff_height + backplate_height + plate_height / 2;
             translate([0, 0, lip_height -shadow_box_height/2 + plate_height/2])
                 shadow_box(plate_x, plate_y, shadow_box_height, wall_thickness, lip_width, lip_height);
                
             // remove a notch for the LED power/data lines
             notch_width = 2;
-            notch_height = plate_height * 2.5;
+            notch_height = plate_height + backplate_height;
             outer_x = plate_x + 2 * wall_thickness;
             grid_span_y = (num_y - 1) * pitch;
             x = -outer_x/2 + wall_thickness / 2 - 0.01;
             y = grid_span_y/2 + 0 * pitch;
-            z = -(standoff_height + notch_height/2 - plate_height / 2);
+            z = -(standoff_height + notch_height/2);
             translate([x - 0.01, y, z])
                 cube([wall_thickness + 0.05, notch_width, notch_height + 0.01], center = true);
         }
@@ -155,9 +156,9 @@ module hole_plate_with_box() {
     
     // Back plate
     if (render_back_plate)
-        translate([0, 0, -standoff_height -plate_height])
+        translate([0, 0, plate_height/2 -standoff_height -backplate_height])
             color("black") 
-                cube([plate_x, plate_y, plate_height], center = true);
+                cube([plate_x, plate_y, backplate_height], center = true);
 }
 
 // --- Call ---
