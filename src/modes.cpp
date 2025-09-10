@@ -4,6 +4,7 @@
 #include "modes.h"
 
 #include "MarbleMadness.h"
+#include "bounce.h"
 #include "MarbleRoller.h"
 #include "XYfire.h"
 #include "xymatrix.h"
@@ -18,21 +19,24 @@
 // Data structure to represent each mode the MarbleMadness can be in.
 struct MarbleMadnessMode
 {
+    void (*enterFunc)(void);            // pointer to the function to call when entering the mode
     void (*renderFunc)(void);           // pointer to the function that will render the mode
+    void (*exitFunc)(void);             // pointer to the function to call when exiting the mode
     const char modeName[MAX_MODE_NAME]; // name of the mode to use in the UI and REST APIs
-    bool showInRESTAPI;                 // flag if the mode should be shown in the REST APIs
+    int showInRESTAPI : 1;              // flag if the mode should be shown in the REST APIs
 };
 
 // This look up table lists each of the display/animation drawing functions
 MarbleMadnessMode MarbleMadnessLUT[]{
-    {mode_marbleroller, "MarbleRoller", true},
-    {mode_xy_fire, "Fire", true},
-    {mode_xy_matrix, "Matrix", true},
+    {NULL, mode_marbleroller, NULL, "MarbleRoller", true},
+    {bounce_enter, bounce_loop, bounce_leave, "Bounce", true},
+    {NULL, mode_xy_fire, NULL, "Fire", true},
+    {NULL, mode_xy_matrix, NULL, "Matrix", true},
 #ifdef DEBUG
-    {mode_xy_test, "xy_test", true},
-    {mode_test, "test", true},
+    {NULL, mode_xy_test, NULL, "xy_test", true},
+    {NULL, mode_test, NULL, "test", true},
 #endif
-    {mode_off, "off", false} // make it obvious we're entering 'regular' modes
+    {NULL, mode_off, NULL, "off", false} // make it obvious we're entering 'regular' modes
 };
 uint8_t marblemadnessModes = (sizeof(MarbleMadnessLUT) / sizeof(MarbleMadnessLUT[0])); // total number of valid modes in table
 
@@ -51,11 +55,23 @@ void setMarbleMadnessMode(const char *newMode)
             // if the mode changed
             if (settings.mode != x)
             {
+                // call the exit function for the old mode if it is valid
+                if (settings.mode >= 0 && settings.mode < marblemadnessModes && MarbleMadnessLUT[settings.mode].exitFunc)
+                {
+                    (*MarbleMadnessLUT[settings.mode].exitFunc)();
+                }
+
                 // output the new mode name and clear the led strips for the new mode
                 settings.mode = x;
                 DB_PRINTF("setMarbleMadnessMode: %s\r\n", MarbleMadnessLUT[settings.mode].modeName);
                 FastLED.clear(true);
                 leds_dirty = true;
+
+                // call the enter function for the new mode if it exists
+                if (MarbleMadnessLUT[x].enterFunc)
+                {
+                    (*MarbleMadnessLUT[x].enterFunc)();
+                }
             }
             break;
         }
@@ -65,7 +81,7 @@ void setMarbleMadnessMode(const char *newMode)
 const char *getMarbleMadnessMode(int mode)
 {
     if (mode < 0 || mode >= marblemadnessModes)
-        return NULL;
+        return MarbleMadnessLUT[0].modeName;
 
     return MarbleMadnessLUT[mode].modeName;
 }

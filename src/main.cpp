@@ -211,14 +211,13 @@ void setup()
 
   // intialize the LED strips for parallel output
   FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_1, COLOR_ORDER>(leds + 0 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-#if 0  
-  FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_2, COLOR_ORDER>(leds + 1 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_3, COLOR_ORDER>(leds + 2 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-  FastLED.addLeds<LED_TYPE, LED_STRIP_PIN_4, COLOR_ORDER>(leds + 3 * NUM_LEDS_PER_STRIP, NUM_LEDS_PER_STRIP).setCorrection(TypicalLEDStrip);
-#endif
   FastLED.setBrightness(dim8_raw(settings.brightness));
   leds_dirty = true;
-  DB_PRINTLN(getMarbleMadnessMode(settings.mode));
+
+  // re-set the mode to ensure proper initialization
+  int mode = settings.mode;
+  settings.mode = -1; // force a change
+  setMarbleMadnessMode(getMarbleMadnessMode(mode)); 
 }
 
 //
@@ -242,7 +241,7 @@ void loop()
 #endif // TIME
 
   // if we have changes in the LEDs, show the updated frame
-  if (leds_dirty)
+//  if (leds_dirty)
   {
 #ifdef DEBUG_SPINNER
     static const char *spinner = "|/-\\";

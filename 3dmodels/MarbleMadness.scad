@@ -5,18 +5,18 @@
 /* [Plate parameters] */
 num_x       = 19;
 num_y       = 19;
-marble_d    = 16.18;     // mm diameter of largest marble (sphere)
+marble_d    = 16.3;      // mm diameter of largest marble (sphere)
 hole_d      = 15.75;     // mm slightly smaller than the diameter of the smallest marble
 pitch       = 16.67;     // mm (center-to-center)
 margin      = 5;         // mm edge margin beyond outer hole edges
 plate_height = 3;        // mm
 led_height  = 2.15;      // mm
 standoff_height = led_height + marble_d / 2; // height of standoffs
+standoff_width = 0.46;   // width of standoffs
 standoff_d  = 3;         // diameter of standoffs
-backplate_height = 6;   // match the foam board I'm using
+backplate_height = 6;    // match the foam board I'm using
 notch_width = 11;        // 10mm for the strip and 1mm slop
 notch_height = 1;
-
 
 /* [Shadow Box parameters] */
 wall_thickness = 3;
@@ -25,7 +25,7 @@ lip_height = 3;
 
 /* [Quality settings] */
 $fn_fast    = 64;        // low-poly for speed
-$fn_final   = 96;        // smooth for export
+$fn_final   = 64;        // smooth for export
 
 // --- Auto quality based on preview mode ---
 $fn_holes   = $preview ? $fn_fast : $fn_final;
@@ -57,7 +57,45 @@ module hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, plate_height, s
                         sphere(d = marble_d, $fn = $fn_holes);
                 }
         }
+        
+        // square louvers
+        difference() {
+            union() {
+                y = -grid_span_y/2 - 0.5 * pitch;
+                for (i = [0 : num_x]) {
+                    x = -grid_span_x/2 + (i - 0.5) * pitch;
+                    translate([x, 0, -standoff_height/2 - plate_height/2])
+                        cube([standoff_width, plate_y - 2 * (margin - standoff_width * 1.5), standoff_height], center = true);
+                    
+                }
 
+                x = -grid_span_x/2 - 0.5 * pitch;
+                for (j = [0 : num_y]) {
+                    y = -grid_span_y/2 + (j - 0.5) * pitch;
+                    translate([0, y, -standoff_height/2 - plate_height/2])
+                        cube([plate_x - 2 * (margin - standoff_width * 1.5), standoff_width, standoff_height], center = true);
+                    
+                }
+            }
+
+            // remove notches for the led strips
+            for (j = [0 : num_y - 1]) {
+                y = -grid_span_y/2 + j * pitch;
+                translate([0, y, -standoff_height - plate_height/2 + notch_height/2])
+                    cube([plate_x, notch_width, notch_height + 0.01], center = true);
+            }
+
+            // make notches taller to accomodate solder joints 
+            for (j = [0 : num_y - 1]) {
+                y = -grid_span_y/2 + j * pitch;
+                translate([grid_span_x/2 + pitch/2, y, -standoff_height - plate_height/2 + notch_height/2])
+                    cube([standoff_width + 0.01, notch_width, notch_height * 2 + 0.01], center = true);
+                translate([-grid_span_x/2 - pitch/2, y, -standoff_height - plate_height/2 + notch_height/2])
+                    cube([standoff_width + 0.01, notch_width, notch_height * 2 + 0.01], center = true);
+            }
+        }
+/*
+        // Cylinder louvers
         difference() {
             // Louvers to prevent light bleeding between cells
             for (i = [0 : num_x - 1])
@@ -80,7 +118,7 @@ module hole_plate(num_x, num_y, marble_d, hole_d, pitch, margin, plate_height, s
                         cube([plate_x, notch_width, notch_height + 0.01], center = true);
             }
         }
-/*
+
         // Standoffs
         for (i = [0 : num_x])
             for (j = [0 : num_y]) {
@@ -120,8 +158,8 @@ module shadow_box(inner_x, inner_y, height, wall_thickness, lip_width, lip_heigh
 // Modified Call with Shadow Box
 // =========================
 
-render_shadow_box = true;
-render_marble_plate = false;
+render_shadow_box = false;
+render_marble_plate = true;
 render_back_plate = false;
 
 module hole_plate_with_box() {

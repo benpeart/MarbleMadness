@@ -47,7 +47,7 @@ void wifi_setup(void)
     hostname[MAX_HOSTNAME_LEN - 1] = 0; // ensure it is null terminated
     WiFi.setHostname(hostname);
 
-    // connect to wifi or enter AP mode so it can be configured
+    // check for a double reset where we should enter config mode
 #ifdef DRD
     drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
     if (drd->detectDoubleReset())
