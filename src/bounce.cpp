@@ -19,8 +19,9 @@ TaskHandle_t physicsTaskHandle = NULL;
 World world(Vec2(0.0f, -9.8f), 10); // 10 iterations is a common default
 
 // Marbles (dynamic small boxes)
-static const int NUM_MARBLES = 9;
+static const int NUM_MARBLES = 19;
 Body marbles[NUM_MARBLES];
+Body walls[NUM_MARBLES]; // for connect-4 style walls
 
 // Boundaries (static)
 Body ground, ceiling, wallLeft, wallRight;
@@ -83,6 +84,38 @@ void setupWorld()
     }
 }
 
+// ----- Physics setup -----
+void setupConnect4()
+{
+    // Walls: define a 19x19 interior with thin static boxes as boundaries
+    // Ground at y = -0.5 (thin slab)
+    makeBody(ground, NUM_COLS / 2.0f, -0.1f, NUM_COLS / 2.0f, 0.1f, 0.0f, true);
+    ground.restitution = 1.15f; // make the ground bouncy
+    // Ceiling at y = NUM_ROWS + 0.5
+    makeBody(ceiling, NUM_COLS / 2.0f, NUM_ROWS + 0.1f, NUM_COLS / 2.0f, 0.1f, 0.0f, true);
+    // Left wall at x = -0.5
+//    makeBody(wallLeft, -0.1f, NUM_ROWS / 2.0f, 0.1f, NUM_ROWS / 2.0f, 0.0f, true);
+    // Right wall at x = NUM_COLS + 0.5
+    makeBody(wallRight, NUM_COLS + 0.1f, NUM_ROWS / 2.0f, 0.1f, NUM_ROWS / 2.0f, 0.0f, true);
+
+    // Marbles: small dynamic boxes (half-extents 0.5 ~ 1 LED)
+    // Random starting positions and velocities
+    for (int i = 0; i < NUM_MARBLES; i++)
+    {
+        // Create vertical walls between columns
+        makeBody(walls[i], i-0.5f, NUM_ROWS / 2.0f, 0.01f, NUM_ROWS / 2, 0.0f, true);
+
+        // Start each marble above its column
+        makeBody(marbles[i], i, NUM_ROWS-1, 0.45f, 0.45f, 5.35f, false); // mass is 5.35g for 16mm glass marble
+        marbles[i].restitution = 1.15f;                                 // The coefficient of restitution (CoR) for a glass marble typically falls in the range of 0.84 to 0.86.
+
+        // Give each an initial push
+        float vx = 0; // No horizontal velocity to keep it within the column
+        float vy = (random(10, 151)) / 50.0f; // ~[0.2, 3] m/s upward
+        marbles[i].velocity.Set(vx, vy);
+    }
+}
+
 // ----- Physics task (Core 0) -----
 void physicsTask(void *pv)
 {
@@ -112,7 +145,8 @@ void bounce_enter()
 
     // Reset physics world
     world.Clear();
-    setupWorld();
+//    setupWorld();
+    setupConnect4();
     xTaskCreatePinnedToCore(physicsTask, "Physics", 2048, NULL, 1, &physicsTaskHandle, 0);
 }
 
@@ -126,22 +160,26 @@ void bounce_leave()
 
 void bounce_loop()
 {
-    static byte speed = 92;
-    static uint32_t t;
-
-    EVERY_N_MILLIS_I(timer, DEFAULT_MILLIS)
+    // ~60 FPS
+    EVERY_N_MILLIS(16)
     {
-        timer.setPeriod(MAX_MILLIS - map(settings.speed, MIN_SPEED, MAX_SPEED, MIN_MILLIS, MAX_MILLIS));
-        t += speed;
-
         CRGB colors[] = {
-            CRGB::Red, CRGB::Green, CRGB::Blue,
-            CRGB::Yellow, CRGB::Magenta, CRGB::Cyan};
+            CRGB::Red,      // Bold and warm
+            CRGB::Green,    // Natural and vibrant
+            CRGB::Blue,     // Cool and deep
+            CRGB::Yellow,   // Bright and energetic
+            CRGB::Purple,   // Rich and regal
+            CRGB::Cyan,     // Tropical and fresh
+            CRGB::Orange,   // Warm and punchy
+            CRGB::Pink,     // Playful and vivid
+            CRGB::LimeGreen // Electric and sharp
+        };
 
+        // Draw marbles at their current positions
         fill_solid(leds, NUM_STRIPS * NUM_LEDS_PER_STRIP, CRGB::Black);
         for (int i = 0; i < NUM_MARBLES; i++)
         {
-            leds[XY(marbleX[i], NUM_ROWS - marbleY[i] - 1)] = colors[i % 6];
+            leds[XY(marbleX[i], NUM_ROWS - marbleY[i] - 1)] = colors[i % (sizeof(colors) / sizeof(colors[0]))];
         }
 
         leds_dirty = true;
@@ -150,8 +188,9 @@ void bounce_loop()
     // reset world every 7 seconds for demo purposes
     EVERY_N_SECONDS(7)
     {
-        DB_PRINTLN("Resetting physics world");
+//        DB_PRINTLN("Resetting physics world");
         world.Clear();
-        setupWorld();
+        setupConnect4();
+//        setupWorld();
     }
 }
