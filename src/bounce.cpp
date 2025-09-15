@@ -4,150 +4,123 @@
 #include "bounce.h"
 #include "debug.h"
 
-// ----- Box2D-Lite (original) -----
-#include <box2d-lite/World.h>
-#include <box2d-lite/Body.h>
+// ----- Box2D (full version) -----
+// You have to edit constants.h and set B2_MAX_WORLDS to 1 for it to run on an ESP32
+#include <box2d/box2d.h>
 
-#define DEFAULT_MILLIS 100
-#define MIN_MILLIS 0
-#define MAX_MILLIS (4 * DEFAULT_MILLIS)
+#ifdef CONNECT_FOUR
+#define MARBLE_COUNT 19
+#else
+#define MARBLE_COUNT 8
+#endif // CONNECT_FOUR
 
 // ----- Physics world -----
 TaskHandle_t physicsTaskHandle = NULL;
+SemaphoreHandle_t worldMutex = xSemaphoreCreateMutex();
 
-// Supply gravity vector and solver iterations directly to constructor
-World world(Vec2(0.0f, -9.8f), 10); // 10 iterations is a common default
+// Create Box2D world with gravity
+b2WorldId world;
+b2BodyId marbles[MARBLE_COUNT];
 
-// Marbles (dynamic small boxes)
-static const int NUM_MARBLES = 19;
-Body marbles[NUM_MARBLES];
-Body walls[NUM_MARBLES]; // for connect-4 style walls
-
-// Boundaries (static)
-Body ground, ceiling, wallLeft, wallRight;
-
-// Shared positions for LED task (atomic ints are enough here)
-volatile int marbleX[NUM_MARBLES];
-volatile int marbleY[NUM_MARBLES];
-
-// Physics-to-LED scale
-// 1 physics unit = 1 LED cell
-#define SCALE 1.0f
-
-// Create a body with given center position, half-extents, and mass
-void makeBody(Body &b, float cx, float cy, float hx, float hy, float mass, bool isStatic = false)
+b2BodyId CreateWall(float x, float y, float w, float h)
 {
-    // Call Set with half-extents and mass
-    b.Set(Vec2(hx, hy), mass);
+    // Create the body
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.position = (b2Vec2){x, y}; // Center of the wall
+    b2BodyId body = b2CreateBody(world, &bodyDef);
 
-    // Set initial position
-    b.position.Set(cx, cy);
+    // Use b2MakeBox to generate the polygon
+    b2Polygon box = b2MakeBox(w * 0.5f, h * 0.5f); // half extents
 
-    // Make static if requested
-    if (isStatic)
-    {
-        b.invMass = 0.0f;
-        b.invI = 0.0f;
-    }
+    // Create the shape definition
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.material = (b2SurfaceMaterial){
+        .friction = 0.8f,
+        .restitution = 0.0f};
 
-    // Add to the world so it will be simulated
-    world.Add(&b);
+    // Attach the shape to the body
+    b2CreatePolygonShape(body, &shapeDef, &box);
+    return body;
+}
+
+b2BodyId SpawnMarble(float x, float y, float r)
+{
+    // Create the body
+    b2BodyDef def = b2DefaultBodyDef();
+    def.type = b2_dynamicBody;
+    def.position = (b2Vec2){x, y};
+    b2BodyId body = b2CreateBody(world, &def);
+
+    // create the circle shape
+    b2Circle circle = {0};
+    circle.radius = r;
+
+    // Create the shape definition
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.density = 5.5f;
+    shapeDef.material = (b2SurfaceMaterial){
+        .friction = 0.3f,
+        .restitution = 0.85f}; // The coefficient of restitution (CoR) for a glass marble typically falls in the range of 0.84 to 0.86.
+
+    // Attach the shape to the body
+    b2CreateCircleShape(body, &shapeDef, &circle);
+    return body;
 }
 
 // ----- Physics setup -----
 void setupWorld()
 {
-    // Walls: define a 19x19 interior with thin static boxes as boundaries
-    // Ground at y = -0.5 (thin slab)
-    makeBody(ground, NUM_COLS / 2.0f, -0.1f, NUM_COLS / 2.0f, 0.1f, 0.0f, true);
-    ground.restitution = 1.15f; // make the ground bouncy
-    // Ceiling at y = NUM_ROWS + 0.5
-    makeBody(ceiling, NUM_COLS / 2.0f, NUM_ROWS + 0.1f, NUM_COLS / 2.0f, 0.1f, 0.0f, true);
-    // Left wall at x = -0.5
-    makeBody(wallLeft, -0.1f, NUM_ROWS / 2.0f, 0.1f, NUM_ROWS / 2.0f, 0.0f, true);
-    // Right wall at x = NUM_COLS + 0.5
-    makeBody(wallRight, NUM_COLS + 0.1f, NUM_ROWS / 2.0f, 0.1f, NUM_ROWS / 2.0f, 0.0f, true);
+    // create the world
+    b2WorldDef worldDef = b2DefaultWorldDef();
+    worldDef.gravity = (b2Vec2){0.0f, -9.8f};
+    world = b2CreateWorld(&worldDef);
 
-    // Marbles: small dynamic boxes (half-extents 0.5 ~ 1 LED)
-    // Random starting positions and velocities
-    for (int i = 0; i < NUM_MARBLES; i++)
+    CreateWall((float)WIDTH / 2.0f, -0.125f, (float)WIDTH + 0.5f, 0.25f);
+    CreateWall(-0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);
+    CreateWall((float)WIDTH + 0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);
+
+    // Spawn marbles at random positions above the visible area
+    for (int i = 0; i < MARBLE_COUNT; ++i)
     {
-        float startX = random(2, NUM_COLS - 2);
-        float startY = random(NUM_ROWS / 2, NUM_ROWS - 3);
-        makeBody(marbles[i], startX, startY, 0.5f, 0.5f, 5.35f, false); // mass is 5.35g for 16mm glass marble
-        marbles[i].restitution = 1.15f;                                 // The coefficient of restitution (CoR) for a glass marble typically falls in the range of 0.84 to 0.86.
+#ifdef CONNECT_FOUR
+        marbles[i] = SpawnMarble(i, HEIGHT - 1, 0.45f);
+#else
+        float x = (float)(random(0, WIDTH));
+        float y = (float)(HEIGHT - random(1, HEIGHT / 4));
+        marbles[i] = SpawnMarble(x, HEIGHT - 1, 0.45f);
 
         // Give each an initial push
         float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s
         float vy = (random(10, 151)) / 50.0f;   // ~[0.2, 3] m/s upward
-        marbles[i].velocity.Set(vx, vy);
-    }
-}
-
-// ----- Physics setup -----
-void setupConnect4()
-{
-    // Walls: define a 19x19 interior with thin static boxes as boundaries
-    // Ground at y = -0.5 (thin slab)
-    makeBody(ground, NUM_COLS / 2.0f, -0.1f, NUM_COLS / 2.0f, 0.1f, 0.0f, true);
-    ground.restitution = 1.15f; // make the ground bouncy
-    // Ceiling at y = NUM_ROWS + 0.5
-    makeBody(ceiling, NUM_COLS / 2.0f, NUM_ROWS + 0.1f, NUM_COLS / 2.0f, 0.1f, 0.0f, true);
-    // Left wall at x = -0.5
-//    makeBody(wallLeft, -0.1f, NUM_ROWS / 2.0f, 0.1f, NUM_ROWS / 2.0f, 0.0f, true);
-    // Right wall at x = NUM_COLS + 0.5
-    makeBody(wallRight, NUM_COLS + 0.1f, NUM_ROWS / 2.0f, 0.1f, NUM_ROWS / 2.0f, 0.0f, true);
-
-    // Marbles: small dynamic boxes (half-extents 0.5 ~ 1 LED)
-    // Random starting positions and velocities
-    for (int i = 0; i < NUM_MARBLES; i++)
-    {
-        // Create vertical walls between columns
-        makeBody(walls[i], i-0.5f, NUM_ROWS / 2.0f, 0.01f, NUM_ROWS / 2, 0.0f, true);
-
-        // Start each marble above its column
-        makeBody(marbles[i], i, NUM_ROWS-1, 0.45f, 0.45f, 5.35f, false); // mass is 5.35g for 16mm glass marble
-        marbles[i].restitution = 1.15f;                                 // The coefficient of restitution (CoR) for a glass marble typically falls in the range of 0.84 to 0.86.
-
-        // Give each an initial push
-        float vx = 0; // No horizontal velocity to keep it within the column
-        float vy = (random(10, 151)) / 50.0f; // ~[0.2, 3] m/s upward
-        marbles[i].velocity.Set(vx, vy);
+        b2Body_SetLinearVelocity(marbles[i], (b2Vec2){vx, vy});
+#endif // CONNECT_FOUR
     }
 }
 
 // ----- Physics task (Core 0) -----
-void physicsTask(void *pv)
+void physicsTask(void *pvParameters)
 {
-    const float timeStep = 1.0f / 60.0f;
-    const TickType_t delayTicks = pdMS_TO_TICKS(1000 / 60);
-
-    for (;;)
+    const TickType_t delay = pdMS_TO_TICKS(1000 / 60); // 60Hz
+    while (true)
     {
-        world.Step(timeStep);
-
-        // Share marble positions with LED task
-        for (int i = 0; i < NUM_MARBLES; i++)
+        // wait until we get the world mutex
+        // then step the world and release the mutex
+        if (xSemaphoreTake(worldMutex, 0))
         {
-            int mx = (int)roundf(marbles[i].position.x * SCALE);
-            int my = (int)roundf(marbles[i].position.y) * SCALE;
-            marbleX[i] = constrain(mx, 0, NUM_COLS - 1);
-            marbleY[i] = constrain(my, 0, NUM_ROWS - 1);
+            if (B2_IS_NON_NULL(world))
+                b2World_Step(world, 1.0f / 60.0f, 1);
+            xSemaphoreGive(worldMutex);
+            vTaskDelay(delay);
         }
-
-        vTaskDelay(delayTicks);
     }
 }
 
 void bounce_enter()
 {
     DB_PRINTLN("Entering Bounce mode");
-
-    // Reset physics world
-    world.Clear();
-//    setupWorld();
-    setupConnect4();
-    xTaskCreatePinnedToCore(physicsTask, "Physics", 2048, NULL, 1, &physicsTaskHandle, 0);
+    // Reset physics world and start physics task
+    setupWorld();
+    xTaskCreatePinnedToCore(physicsTask, "physicsTask", 65536, NULL, 1, &physicsTaskHandle, 0);
 }
 
 void bounce_leave()
@@ -155,6 +128,9 @@ void bounce_leave()
     if (physicsTaskHandle)
         vTaskDelete(physicsTaskHandle);
     physicsTaskHandle = NULL;
+    if (!B2_IS_NULL(world))
+        b2DestroyWorld(world);
+    world = b2_nullWorldId;
     DB_PRINTLN("Leaving Bounce mode");
 }
 
@@ -176,21 +152,54 @@ void bounce_loop()
         };
 
         // Draw marbles at their current positions
-        fill_solid(leds, NUM_STRIPS * NUM_LEDS_PER_STRIP, CRGB::Black);
-        for (int i = 0; i < NUM_MARBLES; i++)
+        FastLED.clear();
+        for (int i = 0; i < MARBLE_COUNT; ++i)
         {
-            leds[XY(marbleX[i], NUM_ROWS - marbleY[i] - 1)] = colors[i % (sizeof(colors) / sizeof(colors[0]))];
+            if (!b2Body_IsValid(marbles[i]))
+                continue;
+
+            b2Vec2 position = b2Body_GetPosition(marbles[i]);
+            int gx = (int)lroundf(position.x);
+            int gy = HEIGHT - (int)lroundf(position.y);
+            leds[XY(gx, gy)] = colors[i % (sizeof(colors) / sizeof(colors[0]))];
         }
 
         leds_dirty = true;
     }
 
-    // reset world every 7 seconds for demo purposes
+    // reset marble positions every 7 seconds for demo purposes
     EVERY_N_SECONDS(7)
     {
-//        DB_PRINTLN("Resetting physics world");
-        world.Clear();
-        setupConnect4();
-//        setupWorld();
+        DB_PRINTF("Physics stack high watermark: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+
+        // make sure we can get the world mutex before resetting the world
+        if (xSemaphoreTake(worldMutex, portMAX_DELAY))
+        {
+#ifdef CONNECT_FOUR
+            // Move marbles into new positions along top row
+            for (int i = 0; i < MARBLE_COUNT; ++i)
+            {
+                b2Body_SetTransform(marbles[i], (b2Vec2){(float)i, (float)(HEIGHT-1)}, b2MakeRot(0.0f)); // Move to new location
+                b2Body_SetLinearVelocity(marbles[i], (b2Vec2){0, 0});
+                b2Body_SetAngularVelocity(marbles[i], 0.0f); // Stop spin
+            }
+#else
+            // Move marbles to new random positions above the visible area
+            for (int i = 0; i < MARBLE_COUNT; ++i)
+            {
+                float x = (float)(random(0, WIDTH));
+                float y = (float)(HEIGHT - random(1, HEIGHT / 4));
+                b2Vec2 newPos = {x, y};
+                b2Body_SetTransform(marbles[i], newPos, b2MakeRot(0.0f)); // Move to new location
+
+                // Give each an initial push
+                float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s
+                float vy = (random(10, 151)) / 50.0f;   // ~[0.2, 3] m/s upward
+                b2Body_SetLinearVelocity(marbles[i], (b2Vec2){vx, vy});
+                b2Body_SetAngularVelocity(marbles[i], 0.0f); // Stop spin
+            }
+#endif // CONNECT_FOUR
+            xSemaphoreGive(worldMutex);
+        }
     }
 }
