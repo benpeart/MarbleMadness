@@ -31,7 +31,7 @@ static CRGB marble_colors[] = {
     CRGB::Red, CRGB::RosyBrown, CRGB::RoyalBlue, CRGB::SaddleBrown, CRGB::Salmon, CRGB::SandyBrown,
     CRGB::SeaGreen, CRGB::Seashell, CRGB::Sienna, CRGB::Silver, CRGB::SkyBlue, CRGB::SlateBlue,
     CRGB::SlateGray, CRGB::Snow, CRGB::SpringGreen, CRGB::SteelBlue, CRGB::Tan, CRGB::Teal,
-    CRGB::Thistle, CRGB::Tomato, CRGB::Turquoise, CRGB::Violet, CRGB::Wheat, 
+    CRGB::Thistle, CRGB::Tomato, CRGB::Turquoise, CRGB::Violet, CRGB::Wheat,
     CRGB::WhiteSmoke, CRGB::Yellow, CRGB::YellowGreen};
 static int marble_count = (sizeof(marble_colors) / sizeof(marble_colors[0])); // total number of valid marble colors in table
 
@@ -51,26 +51,27 @@ void marbletrack_enter()
 
     // draw the track
     /*
-    x=0 -> 17, y=0
-    x=0 -> 17, y=1
-    x=1 -> 18, y=3
-    x=0 -> 17, y=5
-    x=1 -> 18, y=7
+    x=1 -> 18, y=0
+    x=1 -> 18, y=2
+    x=0 -> 17, y=4
+    x=1 -> 18, y=6
+    x=0 -> 17, y=8
+    x=1 -> 18, y=10
     */
     for (int y = 0; y < NUM_ROWS; y += 2)
     {
-        if (y - 1 % 4 == 0)
+        if (y % 4 == 0)
         {
-            for (int x = 0; x < NUM_COLS - 1; x++)
+            for (int x = 1; x < NUM_COLS; x++)
             {
-                leds[XY(x, y)] = CRGB::White;
+                leds[XY(x, y)] = CRGB(0x161616);
             }
         }
         else
         {
-            for (int x = 1; x < NUM_COLS; x++)
+            for (int x = 0; x < NUM_COLS - 1; x++)
             {
-                leds[XY(x, y)] = CRGB::White;
+                leds[XY(x, y)] = CRGB(0x161616);
             }
         }
     }
@@ -83,33 +84,49 @@ void marbletrack_loop()
     {
         timer.setPeriod(MAX_MILLIS - map(settings.speed, MIN_SPEED, MAX_SPEED, MIN_MILLIS, MAX_MILLIS));
 
-        // start with last LED to allow proper overlapping
-        bool emptyScreen = true;
+        // traverse the path with simple logic
+        static int x = NUM_COLS - 1;
+        static int y = NUM_ROWS - 1;
+
+        // check if we need to reset to the top
+        if (y >= NUM_ROWS - 1)
+        {
+            // clear the previous marble position
+            leds[XY(x, y)] = CRGB::Black;
+            x = y = 0;
+        }
+        else if ((leds[XY(x, y + 1)] == CRGB::Black))
+        {
+            // if the spot below us is open, move down
+            y++;
+        }
+        else if ((y - 1) % 4)
+        {
+            // go left on rows 3, 7, 11, 15
+            x--;
+        }
+        else
+        {
+            // rows 1, 5, 9, 13, 17 go right
+            x++;
+        }
+        //        DB_PRINTF("Marble at %d,%d\n", x, y);
+        leds[XY(x, y)] = CRGB::Red;
+
         for (int i = 0; i < NUM_LEDS; i++)
         {
             // if this is a marble
-            if (is_marble(leds[i]))
+            if (leds[i] == CRGB::Red)
             {
-                // if not on the last LED, add a new marble in the next position of the same color
-                if (i > 0)
-                {
-                    leds[i - 1] = leds[i];
-                    emptyScreen = false;
-                }
-
                 // turn the old marble position into the beginning of a trail
                 leds[i].fadeToBlackBy(191); // Dim by 75%
             }
-            else
+            else if (leds[i] != CRGB(0x161616))
             {
                 // Fade all trailing LEDs
-//                leds[i].fadeToBlackBy(191); // Dim by 50%
+                leds[i].fadeToBlackBy(191); // Dim by 75%
             }
         }
-
-        // spawn new falling marble at beginning of run
-        if (random8(4 * NUM_COLS) == 0 || emptyScreen) // lower number == more frequent spawns
-            leds[NUM_LEDS - 1] = marble_colors[random8(marble_count)];
 
         leds_dirty = true;
     }
