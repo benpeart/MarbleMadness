@@ -54,6 +54,8 @@ void wifi_setup(void)
     {
         DB_PRINTLN("Double reset detected");
         initialConfig = true;
+        // reset settings - for testing
+        // wifiManager.resetSettings();
     }
 #endif
 
@@ -66,14 +68,12 @@ void wifi_setup(void)
 
         // initial config, disable timeout.
         wifiManager.setConfigPortalTimeout(0);
-
         wifiManager.startConfigPortal((String(hostname) + "AP").c_str());
     }
     else
     {
-        // Give 2 minutes to configure WiFi, otherwise, just go into MarbleMadness mode without it
+        // Give 2 minutes to configure WiFi, otherwise, just start without it
         wifiManager.setConfigPortalTimeout(120);
-
         wifiManager.autoConnect((String(hostname) + "AP").c_str());
     }
 
@@ -128,7 +128,7 @@ void wifi_setup(void)
         DB_PRINTLN("Could not start MDNS responder");
     }
 
-    // Setup the web UI by serveing static files from LittleFS
+    // Setup the web UI by serving static files from LittleFS
     if (!LittleFS.begin(false))
     {
         DB_PRINTLN("LittleFS mount failed");

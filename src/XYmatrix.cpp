@@ -34,7 +34,7 @@ void mode_xy_matrix()
         }
 
         // fade all trailing leds
-        for (int i = 0; i < NUM_STRIPS * NUM_LEDS_PER_STRIP; i++)
+        for (int i = 0; i < NUM_LEDS; i++)
         {
             if (leds[i].g != 255)
                 leds[i].nscale8(192); // only fade trail
@@ -42,7 +42,7 @@ void mode_xy_matrix()
 
         // check for empty screen to ensure code spawn
         bool emptyScreen = true;
-        for (int i = 0; i < NUM_STRIPS * NUM_LEDS_PER_STRIP; i++)
+        for (int i = 0; i < NUM_LEDS; i++)
         {
             if (leds[i])
             {

@@ -9,7 +9,7 @@ boolean leds_dirty = true;
 
 // led array which will be displayed
 // have one unused space that we an return when something is out of bounds to make exception handling simpler
-CRGB leds[NUM_STRIPS * NUM_LEDS_PER_STRIP + 1];
+CRGB leds[NUM_LEDS + 1];
 
 #define BOTTOM_RIGHT
 
@@ -20,7 +20,7 @@ uint16_t XY(uint16_t x, uint16_t y)
     return OUTOFBOUNDS;
 
   // Calculate the LED index based on a serpintine mapping
-#ifdef BOTTOM_RIGHT  
+#ifdef BOTTOM_RIGHT
   // (0,0) is top left (index 360), (18,18) is bottom right (index = 0)
   // each strip is a single row of the XY matrix
   int base_index;
@@ -54,7 +54,7 @@ uint16_t XY(uint16_t x, uint16_t y)
   }
 
   return OUTOFBOUNDS; // should never get here
-#endif // TOP_LEFT
+#endif                // TOP_LEFT
 }
 
 #ifdef COMPLEX_SHAPE
@@ -158,3 +158,47 @@ int XY(int x, int y)
   return strip * NUM_LEDS_PER_STRIP + stripOffset;
 }
 #endif // COMPLEX_SHAPE
+
+#if 0
+TRANSITION_TYPE current_transition = RANDOM;
+CRGB *source_frame;
+void set_transition(TRANSITION_TYPE type, CRGB *leds
+{
+  current_transition = type;
+  source_frame = leds
+}
+
+void transition_drawframe()
+{
+  switch (current_transition)
+  {
+  case MARBLE_ROLLER:
+    marbleroller_drawframe();
+    break;
+  case ROLL_FROM_LEFT:
+    rollfromleft_drawframe();
+    break;
+  case ROLL_FROM_RIGHT:
+    rollfromright_drawframe();
+    break;
+  case SIMPLE_CUT:
+    simplecut_drawframe();
+    break;
+  case CROSSFADE:
+    crossfade_drawframe();
+    break;
+  case SLIDE:
+    slide_drawframe();
+    break;
+  case WIPE:
+    wipe_drawframe();
+    break;
+  case PUSH:
+    push_drawframe();
+    break;
+  case FALL:
+    fall_drawframe();
+    break;
+  }
+}
+#endif

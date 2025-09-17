@@ -22,7 +22,7 @@ void mode_test()
     leds[index] = CRGB::Black; // off
 
     // move to the next pixel
-    if (++index >= NUM_STRIPS * NUM_LEDS_PER_STRIP)
+    if (++index >= NUM_LEDS)
       index = 0;
     DB_PRINTLN(index);
 

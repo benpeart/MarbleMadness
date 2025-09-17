@@ -6,6 +6,8 @@
 #include "MarbleMadness.h"
 #include "bounce.h"
 #include "MarbleRoller.h"
+#include "MarbleTrack.h"
+#include "pachinko.h"
 #include "XYfire.h"
 #include "xymatrix.h"
 
@@ -29,7 +31,9 @@ struct MarbleMadnessMode
 // This look up table lists each of the display/animation drawing functions
 MarbleMadnessMode MarbleMadnessLUT[]{
     {NULL, mode_marbleroller, NULL, "MarbleRoller", true},
+    {marbletrack_enter, marbletrack_loop, NULL, "MarbleTrack", true},
     {bounce_enter, bounce_loop, bounce_leave, "Bounce", true},
+    {pachinko_enter, pachinko_loop, pachinko_leave, "Pachinko", true},
     {NULL, mode_xy_fire, NULL, "Fire", true},
     {NULL, mode_xy_matrix, NULL, "Matrix", true},
 #ifdef DEBUG
@@ -55,7 +59,7 @@ void setMarbleMadnessMode(const char *newMode)
             // if the mode changed
             if (settings.mode != x)
             {
-                // call the exit function for the old mode if it is valid
+                // call the exit function for the old mode iff it is valid
                 if (settings.mode >= 0 && settings.mode < marblemadnessModes && MarbleMadnessLUT[settings.mode].exitFunc)
                 {
                     (*MarbleMadnessLUT[settings.mode].exitFunc)();

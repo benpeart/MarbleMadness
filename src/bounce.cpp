@@ -75,9 +75,9 @@ void setupWorld()
     worldDef.gravity = (b2Vec2){0.0f, -9.8f};
     world = b2CreateWorld(&worldDef);
 
-    CreateWall((float)WIDTH / 2.0f, -0.125f, (float)WIDTH + 0.5f, 0.25f);
-    CreateWall(-0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);
-    CreateWall((float)WIDTH + 0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);
+    CreateWall((float)WIDTH / 2.0f, -0.125f, (float)WIDTH + 0.5f, 0.25f);                       // floor
+    CreateWall(-0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);                      // left wall
+    CreateWall((float)WIDTH - 1.0f + 0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f); // right wall
 
     // Spawn marbles at random positions above the visible area
     for (int i = 0; i < MARBLE_COUNT; ++i)
@@ -104,9 +104,9 @@ void physicsTask(void *pvParameters)
     while (true)
     {
         // wait until we get the world mutex
-        // then step the world and release the mutex
         if (xSemaphoreTake(worldMutex, 0))
         {
+            // then step the world and release the mutex
             if (B2_IS_NON_NULL(world))
                 b2World_Step(world, 1.0f / 60.0f, 1);
             xSemaphoreGive(worldMutex);
@@ -117,20 +117,26 @@ void physicsTask(void *pvParameters)
 
 void bounce_enter()
 {
+    // Initializie physics world and start physics task
     DB_PRINTLN("Entering Bounce mode");
-    // Reset physics world and start physics task
     setupWorld();
-    xTaskCreatePinnedToCore(physicsTask, "physicsTask", 65536, NULL, 1, &physicsTaskHandle, 0);
+    xTaskCreatePinnedToCore(physicsTask, "physicsTask", 32768, NULL, 1, &physicsTaskHandle, 0);
 }
 
 void bounce_leave()
 {
     if (physicsTaskHandle)
-        vTaskDelete(physicsTaskHandle);
-    physicsTaskHandle = NULL;
-    if (!B2_IS_NULL(world))
-        b2DestroyWorld(world);
-    world = b2_nullWorldId;
+    {
+        if (xSemaphoreTake(worldMutex, portMAX_DELAY))
+        {
+            vTaskDelete(physicsTaskHandle);
+            physicsTaskHandle = NULL;
+            if (!B2_IS_NULL(world))
+                b2DestroyWorld(world);
+            world = b2_nullWorldId;
+        }
+        xSemaphoreGive(worldMutex);
+    }
     DB_PRINTLN("Leaving Bounce mode");
 }
 
@@ -167,10 +173,11 @@ void bounce_loop()
         leds_dirty = true;
     }
 
-    // reset marble positions every 7 seconds for demo purposes
-    EVERY_N_SECONDS(7)
+    // reset marble positions every 10 seconds for demo purposes
+    EVERY_N_SECONDS(10)
     {
-        DB_PRINTF("Physics stack high watermark: %d bytes\n", uxTaskGetStackHighWaterMark(NULL));
+        //        DB_PRINTF("Free heap: %u bytes | Largest block: %u bytes\n", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+        //        DB_PRINTF("Physics stack high watermark: %d bytes\n", uxTaskGetStackHighWaterMark(physicsTaskHandle));
 
         // make sure we can get the world mutex before resetting the world
         if (xSemaphoreTake(worldMutex, portMAX_DELAY))
@@ -179,7 +186,7 @@ void bounce_loop()
             // Move marbles into new positions along top row
             for (int i = 0; i < MARBLE_COUNT; ++i)
             {
-                b2Body_SetTransform(marbles[i], (b2Vec2){(float)i, (float)(HEIGHT-1)}, b2MakeRot(0.0f)); // Move to new location
+                b2Body_SetTransform(marbles[i], (b2Vec2){(float)i, (float)(HEIGHT - 1)}, b2MakeRot(0.0f)); // Move to new location
                 b2Body_SetLinearVelocity(marbles[i], (b2Vec2){0, 0});
                 b2Body_SetAngularVelocity(marbles[i], 0.0f); // Stop spin
             }

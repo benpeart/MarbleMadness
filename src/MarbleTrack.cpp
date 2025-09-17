@@ -2,7 +2,7 @@
 #include "debug.h"
 #include "settings.h"
 #include "render.h"
-#include "MarbleRoller.h"
+#include "MarbleTrack.h"
 
 #define DEFAULT_MILLIS 75
 #define MIN_MILLIS 0
@@ -10,7 +10,7 @@
 
 static CRGB marble_colors[] = {
     CRGB::AliceBlue, CRGB::Amethyst, CRGB::AntiqueWhite, CRGB::Aqua, CRGB::Aquamarine, CRGB::Azure,
-    CRGB::Beige, CRGB::Bisque, CRGB::Black, CRGB::BlanchedAlmond, CRGB::Blue, CRGB::BlueViolet,
+    CRGB::Beige, CRGB::Bisque, CRGB::BlanchedAlmond, CRGB::Blue, CRGB::BlueViolet,
     CRGB::Brown, CRGB::BurlyWood, CRGB::CadetBlue, CRGB::Chartreuse, CRGB::Chocolate, CRGB::Coral,
     CRGB::CornflowerBlue, CRGB::Cornsilk, CRGB::Crimson, CRGB::Cyan, CRGB::DarkBlue, CRGB::DarkCyan,
     CRGB::DarkGoldenrod, CRGB::DarkGray, CRGB::DarkGreen, CRGB::DarkKhaki, CRGB::DarkMagenta, CRGB::DarkOliveGreen,
@@ -31,7 +31,7 @@ static CRGB marble_colors[] = {
     CRGB::Red, CRGB::RosyBrown, CRGB::RoyalBlue, CRGB::SaddleBrown, CRGB::Salmon, CRGB::SandyBrown,
     CRGB::SeaGreen, CRGB::Seashell, CRGB::Sienna, CRGB::Silver, CRGB::SkyBlue, CRGB::SlateBlue,
     CRGB::SlateGray, CRGB::Snow, CRGB::SpringGreen, CRGB::SteelBlue, CRGB::Tan, CRGB::Teal,
-    CRGB::Thistle, CRGB::Tomato, CRGB::Turquoise, CRGB::Violet, CRGB::Wheat, CRGB::White,
+    CRGB::Thistle, CRGB::Tomato, CRGB::Turquoise, CRGB::Violet, CRGB::Wheat, 
     CRGB::WhiteSmoke, CRGB::Yellow, CRGB::YellowGreen};
 static int marble_count = (sizeof(marble_colors) / sizeof(marble_colors[0])); // total number of valid marble colors in table
 
@@ -45,7 +45,39 @@ static bool is_marble(CRGB color)
     return false;
 }
 
-void mode_marbleroller()
+void marbletrack_enter()
+{
+    DB_PRINTLN("Entering MarbleTrack mode");
+
+    // draw the track
+    /*
+    x=0 -> 17, y=0
+    x=0 -> 17, y=1
+    x=1 -> 18, y=3
+    x=0 -> 17, y=5
+    x=1 -> 18, y=7
+    */
+    for (int y = 0; y < NUM_ROWS; y += 2)
+    {
+        if (y - 1 % 4 == 0)
+        {
+            for (int x = 0; x < NUM_COLS - 1; x++)
+            {
+                leds[XY(x, y)] = CRGB::White;
+            }
+        }
+        else
+        {
+            for (int x = 1; x < NUM_COLS; x++)
+            {
+                leds[XY(x, y)] = CRGB::White;
+            }
+        }
+    }
+    leds_dirty = true;
+}
+
+void marbletrack_loop()
 {
     EVERY_N_MILLIS_I(timer, DEFAULT_MILLIS)
     {
@@ -71,7 +103,7 @@ void mode_marbleroller()
             else
             {
                 // Fade all trailing LEDs
-                leds[i].fadeToBlackBy(191); // Dim by 50%
+//                leds[i].fadeToBlackBy(191); // Dim by 50%
             }
         }
 
