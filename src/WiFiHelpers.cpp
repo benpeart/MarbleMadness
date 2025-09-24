@@ -3,7 +3,9 @@
 #ifdef WIFI
 #include <WiFi.h>
 #include "WiFiHelpers.h"
+#ifdef ASYNC_WIFIMANAGER
 #include <ESPAsyncWiFiManager.h>
+#endif // ASYNC_WIFIMANAGER
 #include <ESPAsyncWebServer.h>
 #include <LittleFS.h>
 #include "settings.h"
@@ -30,7 +32,11 @@
 DoubleResetDetector *drd;
 #endif // DRD
 
+#define MAX_SSID_LEN 32
+#define MAX_PASSWORD_LEN 64
 #define MAX_HOSTNAME_LEN 32
+char ssid[MAX_SSID_LEN] = "IOT";
+char password[MAX_PASSWORD_LEN] = "";
 char hostname[MAX_HOSTNAME_LEN] = "MarbleMadness";
 
 // Indicates whether ESP has WiFi credentials saved from previous session, or double reset detected
@@ -38,15 +44,12 @@ bool initialConfig = false;
 
 #define HTTP_PORT 80
 AsyncWebServer webServer(HTTP_PORT);
+#ifdef ASYNC_WIFIMANAGER
 DNSServer dnsServer;
+#endif // ASYNC_WIFIMANAGER
 
 void wifi_setup(void)
 {
-    // connect to wifi or enter AP mode so it can be configured
-    preferences.getBytes("hostname", hostname, sizeof(hostname));
-    hostname[MAX_HOSTNAME_LEN - 1] = 0; // ensure it is null terminated
-    WiFi.setHostname(hostname);
-
     // check for a double reset where we should enter config mode
 #ifdef DRD
     drd = new DoubleResetDetector(DRD_TIMEOUT, DRD_ADDRESS);
@@ -59,6 +62,12 @@ void wifi_setup(void)
     }
 #endif
 
+    // connect to wifi or enter AP mode so it can be configured
+    preferences.getString("hostname", hostname, sizeof(hostname));
+    hostname[MAX_HOSTNAME_LEN - 1] = 0; // ensure it is null terminated
+    WiFi.setHostname(hostname);
+
+#ifdef ASYNC_WIFIMANAGER
     // Local intialization. Once its business is done, there is no need to keep it around
     AsyncWiFiManager wifiManager(&webServer, &dnsServer);
 
@@ -76,6 +85,29 @@ void wifi_setup(void)
         wifiManager.setConfigPortalTimeout(120);
         wifiManager.autoConnect((String(hostname) + "AP").c_str());
     }
+#else
+    // Attempt to read SSID/password from preferences
+    preferences.getString("wifi_ssid", ssid, sizeof(ssid));
+    ssid[MAX_SSID_LEN - 1] = 0; // ensure it is null terminated
+    preferences.getString("wifi_password", password, sizeof(password));
+    password[MAX_PASSWORD_LEN - 1] = 0; // ensure it is null terminated
+
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+
+    unsigned long start = millis();
+    while (WiFi.status() != WL_CONNECTED)
+    {
+        if (millis() - start >= 30000)
+        {
+            DB_PRINTLN(F("WiFi connect timed out"));
+            return;
+        }
+        delay(200);
+        DB_PRINT(F("."));
+    }
+
+#endif // ASYNC_WIFIMANAGER
 
     // report on our WiFi connection status
     if (WiFi.status() == WL_CONNECTED)
@@ -168,11 +200,16 @@ void wifi_loop(void)
     {
         DB_PRINTLN(F("\nWiFi lost. Attempting to reconnect"));
 
+#ifdef ASYNC_WIFIMANAGER
         // Local intialization. Once its business is done, there is no need to keep it around
         AsyncWiFiManager wifiManager(&webServer, &dnsServer);
 
         // attempt to reconnect
         wifiManager.autoConnect((String(hostname) + "AP").c_str());
+#else
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(ssid, password);
+#endif // ASYNC_WIFIMANAGER
 
         // report on our WiFi connection status
         if (WiFi.status() == WL_CONNECTED)

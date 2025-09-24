@@ -1,74 +1,19 @@
 #include "main.h"
-#include "settings.h"
-#include "render.h"
-#include "bounce.h"
 #include "debug.h"
+#include "render.h"
+#include "physics.h"
+#include "bounce.h"
 
-// ----- Box2D (full version) -----
-// You have to edit constants.h and set B2_MAX_WORLDS to 1 for it to run on an ESP32
-#include <box2d/box2d.h>
-
+// Track our marbles so we can move them around
 #ifdef CONNECT_FOUR
 #define MARBLE_COUNT 19
 #else
 #define MARBLE_COUNT 8
 #endif // CONNECT_FOUR
-
-// ----- Physics world -----
-TaskHandle_t physicsTaskHandle = NULL;
-SemaphoreHandle_t worldMutex = xSemaphoreCreateMutex();
-
-// Create Box2D world with gravity
-b2WorldId world;
-b2BodyId marbles[MARBLE_COUNT];
-
-b2BodyId CreateWall(float x, float y, float w, float h)
-{
-    // Create the body
-    b2BodyDef bodyDef = b2DefaultBodyDef();
-    bodyDef.position = (b2Vec2){x, y}; // Center of the wall
-    b2BodyId body = b2CreateBody(world, &bodyDef);
-
-    // Use b2MakeBox to generate the polygon
-    b2Polygon box = b2MakeBox(w * 0.5f, h * 0.5f); // half extents
-
-    // Create the shape definition
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.material = (b2SurfaceMaterial){
-        .friction = 0.8f,
-        .restitution = 0.0f};
-
-    // Attach the shape to the body
-    b2CreatePolygonShape(body, &shapeDef, &box);
-    return body;
-}
-
-b2BodyId SpawnMarble(float x, float y, float r)
-{
-    // Create the body
-    b2BodyDef def = b2DefaultBodyDef();
-    def.type = b2_dynamicBody;
-    def.position = (b2Vec2){x, y};
-    b2BodyId body = b2CreateBody(world, &def);
-
-    // create the circle shape
-    b2Circle circle = {0};
-    circle.radius = r;
-
-    // Create the shape definition
-    b2ShapeDef shapeDef = b2DefaultShapeDef();
-    shapeDef.density = 5.5f;
-    shapeDef.material = (b2SurfaceMaterial){
-        .friction = 0.3f,
-        .restitution = 0.85f}; // The coefficient of restitution (CoR) for a glass marble typically falls in the range of 0.84 to 0.86.
-
-    // Attach the shape to the body
-    b2CreateCircleShape(body, &shapeDef, &circle);
-    return body;
-}
+static b2BodyId marbles[MARBLE_COUNT];
 
 // ----- Physics setup -----
-void setupWorld()
+static void setupWorld()
 {
     // create the world
     b2WorldDef worldDef = b2DefaultWorldDef();
@@ -83,11 +28,11 @@ void setupWorld()
     for (int i = 0; i < MARBLE_COUNT; ++i)
     {
 #ifdef CONNECT_FOUR
-        marbles[i] = SpawnMarble(i, HEIGHT - 1, 0.45f);
+        marbles[i] = CreateCircle(i, HEIGHT - 1, 0.45f, 0.3f, 0.85f);
 #else
         float x = (float)(random(0, WIDTH));
         float y = (float)(HEIGHT - random(1, HEIGHT / 4));
-        marbles[i] = SpawnMarble(x, HEIGHT - 1, 0.45f);
+        marbles[i] = CreateCircle(x, HEIGHT - 1, 0.45f, 0.3f, 0.85f);
 
         // Give each an initial push
         float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s
@@ -97,46 +42,17 @@ void setupWorld()
     }
 }
 
-// ----- Physics task (Core 0) -----
-void physicsTask(void *pvParameters)
-{
-    const TickType_t delay = pdMS_TO_TICKS(1000 / 60); // 60Hz
-    while (true)
-    {
-        // wait until we get the world mutex
-        if (xSemaphoreTake(worldMutex, 0))
-        {
-            // then step the world and release the mutex
-            if (B2_IS_NON_NULL(world))
-                b2World_Step(world, 1.0f / 60.0f, 1);
-            xSemaphoreGive(worldMutex);
-            vTaskDelay(delay);
-        }
-    }
-}
-
 void bounce_enter()
 {
     // Initializie physics world and start physics task
     DB_PRINTLN("Entering Bounce mode");
     setupWorld();
-    xTaskCreatePinnedToCore(physicsTask, "physicsTask", 32768, NULL, 1, &physicsTaskHandle, 0);
+    physics_enter();
 }
 
 void bounce_leave()
 {
-    if (physicsTaskHandle)
-    {
-        if (xSemaphoreTake(worldMutex, portMAX_DELAY))
-        {
-            vTaskDelete(physicsTaskHandle);
-            physicsTaskHandle = NULL;
-            if (!B2_IS_NULL(world))
-                b2DestroyWorld(world);
-            world = b2_nullWorldId;
-        }
-        xSemaphoreGive(worldMutex);
-    }
+    physics_leave();
     DB_PRINTLN("Leaving Bounce mode");
 }
 
@@ -176,8 +92,8 @@ void bounce_loop()
     // reset marble positions every 10 seconds for demo purposes
     EVERY_N_SECONDS(10)
     {
-        //        DB_PRINTF("Free heap: %u bytes | Largest block: %u bytes\n", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
-        //        DB_PRINTF("Physics stack high watermark: %d bytes\n", uxTaskGetStackHighWaterMark(physicsTaskHandle));
+        //        DB_PRINTF("Free heap: %u bytes | Largest block: %u bytes\r\n", heap_caps_get_free_size(MALLOC_CAP_8BIT), heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+        //        DB_PRINTF("Physics stack high watermark: %d bytes\r\n", uxTaskGetStackHighWaterMark(physicsTaskHandle));
 
         // make sure we can get the world mutex before resetting the world
         if (xSemaphoreTake(worldMutex, portMAX_DELAY))

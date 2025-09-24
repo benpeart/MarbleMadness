@@ -21,7 +21,7 @@
 // GLOBAL PIN DECLARATIONS -------------------------------------------------
 //
 // setup our LED strips for parallel output using FastLED
-#define LED_STRIP_PIN_1 32
+#define LED_STRIP_PIN_1 18
 #define LED_STRIP_PIN_2 27
 #define LED_STRIP_PIN_3 26
 #define LED_STRIP_PIN_4 25
@@ -185,6 +185,16 @@ void setup()
   while (!Serial)
     ; // wait for serial port to connect. Needed for native USB port only
   DB_PRINTLN("\nStarting MarbleMadness on " + String(ARDUINO_BOARD));
+
+  // debug info about the ESP32 we are running on
+  DB_PRINTLN("ESP32 Chip Model: " + String(ESP.getChipModel()));
+  DB_PRINTLN("ESP32 Chip Revision: " + String(ESP.getChipRevision()));
+  DB_PRINTLN("ESP32 Chip Cores: " + String(ESP.getChipCores()));
+  DB_PRINTLN("ESP32 CPU Frequency: " + String(ESP.getCpuFreqMHz()) + " MHz");
+  DB_PRINTLN("ESP32 Flash Size: " + String(ESP.getFlashChipSize() / (1024 * 1024)) + " MB");
+  DB_PRINTLN("ESP32 Flash Speed: " + String(ESP.getFlashChipSpeed() / 1000000) + " MHz");
+  DB_PRINTLN("ESP32 PSRAM Size: " + String(ESP.getPsramSize())); // Should print 8388608
+  DB_PRINTLN("ESP32 Free PSRAM: " + String(ESP.getFreePsram())); // Shows available heap in PSRAM
 #endif
 
   // initialize the settings from persistent storage
@@ -217,7 +227,7 @@ void setup()
   // re-set the mode to ensure proper initialization
   int mode = settings.mode;
   settings.mode = -1; // force a change
-  setMarbleMadnessMode(getMarbleMadnessMode(mode)); 
+  setMarbleMadnessMode(getMarbleMadnessMode(mode));
 }
 
 //
@@ -241,7 +251,7 @@ void loop()
 #endif // TIME
 
   // if we have changes in the LEDs, show the updated frame
-//  if (leds_dirty)
+  //  if (leds_dirty)
   {
 #ifdef DEBUG_SPINNER
     static const char *spinner = "|/-\\";

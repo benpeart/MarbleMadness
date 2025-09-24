@@ -8,6 +8,7 @@
 #include "MarbleRoller.h"
 #include "MarbleTrack.h"
 #include "pachinko.h"
+#include "physicsRoller.h"
 #include "XYfire.h"
 #include "xymatrix.h"
 
@@ -32,6 +33,7 @@ struct MarbleMadnessMode
 MarbleMadnessMode MarbleMadnessLUT[]{
     {NULL, mode_marbleroller, NULL, "MarbleRoller", true},
     {marbletrack_enter, marbletrack_loop, NULL, "MarbleTrack", true},
+    {physicsRoller_enter, physicsRoller_loop, physicsRoller_leave, "PhysicsRoller", true},
     {bounce_enter, bounce_loop, bounce_leave, "Bounce", true},
     {pachinko_enter, pachinko_loop, pachinko_leave, "Pachinko", true},
     {NULL, mode_xy_fire, NULL, "Fire", true},
