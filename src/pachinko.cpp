@@ -9,6 +9,7 @@
 #define MARBLE_COUNT 6
 static b2BodyId marbles[MARBLE_COUNT];
 
+#if 0
 // Example 19x19 bit array (1 = LED on, 0 = LED off)
 uint32_t pinPattern[HEIGHT] = {
     0b0000000000000000000,
@@ -30,7 +31,29 @@ uint32_t pinPattern[HEIGHT] = {
     0b0000000000000000000,
     0b0010001000100010001,
     0b0000000000000000000};
-
+#else
+// Example 19x19 bit array (1 = LED on, 0 = LED off)
+uint32_t pinPattern[HEIGHT] = {
+    0b0000000000000000000,
+    0b1000000000000000001,
+    0b0100000000000000010,
+    0b0010000000000000100,
+    0b0001000000000001000,
+    0b0000100000000010000,
+    0b0000010000000100000,
+    0b0000001000001000000,
+    0b0000000100010000000,
+    0b0000000010100000000,
+    0b0000000000000000000,
+    0b0100010001000100010,
+    0b0000000000000000000,
+    0b0001000100010001000,
+    0b0000000000000000000,
+    0b0100010001000100010,
+    0b0000000000000000000,
+    0b0001000100010001000,
+    0b0000000000000000000};
+#endif
 // ----- Physics setup -----
 static void setupWorld()
 {
@@ -52,7 +75,7 @@ static void setupWorld()
             if ((pinPattern[y] >> (WIDTH - 1 - x)) & 0x1)
             {
                 // The coefficient of restitution (CoR) for a steel pachinko pin typically falls in the range of 0.80 to 0.85.
-                CreateCircle((float)x, (float)(HEIGHT - y), 0.25f, 0.3f, 0.80f, b2_staticBody);
+                CreateCircle((float)x, (float)(HEIGHT - y), 0.15f, 0.3f, 0.80f, b2_staticBody);
             }
         }
     }

@@ -27,8 +27,11 @@ b2BodyId CreateWall(float x, float y, float w, float h)
 
     // Attach the shape to the body
     b2CreatePolygonShape(body, &shapeDef, &box);
+    DB_PRINTF("Created wall (x=%.3f,y=%.3f,w=%.3f,h=%.3f)\r\n", x, y, w, h);
     return body;
 }
+
+
 
 b2BodyId CreateCircle(float x, float y, float r, float friction, float restitution, b2BodyType type)
 {
@@ -51,6 +54,47 @@ b2BodyId CreateCircle(float x, float y, float r, float friction, float restituti
 
     // Attach the shape to the body
     b2CreateCircleShape(body, &shapeDef, &circle);
+    DB_PRINTF("Created circle (x=%.3f,y=%.3f,r=%.3f)\r\n", x, y, r);
+    return body;
+}
+
+b2BodyId CreateLine(float wx1, float wy1, float wx2, float wy2, float thickness, float friction, float restitution)
+{
+    // Compute center point
+    float cx = (wx1 + wx2) * 0.5f;
+    float cy = (wy1 + wy2) * 0.5f;
+
+    // Compute length and angle
+    float dx = wx2 - wx1;
+    float dy = wy2 - wy1;
+    float length = sqrtf(dx * dx + dy * dy);
+    if (length < 1e-6f)
+    {
+        // Too short
+        return B2_NULL_ID;
+    }
+
+    float angle = atan2f(dy, dx);
+
+    // Create the body at the center with rotation
+    b2BodyDef bodyDef = b2DefaultBodyDef();
+    bodyDef.position = (b2Vec2){cx, cy};
+    b2BodyId body = b2CreateBody(world, &bodyDef);
+
+    // Apply local rotation to the polygon (make an offset box)
+    b2Polygon rotated = b2MakeOffsetBox(length * 0.5f, thickness * 0.5f, b2Vec2_zero, b2MakeRot(angle));
+
+    // Shape definition
+    b2ShapeDef shapeDef = b2DefaultShapeDef();
+    shapeDef.material = (b2SurfaceMaterial){
+        .friction = friction,
+        .restitution = restitution};
+
+    // Create polygon shape
+    b2CreatePolygonShape(body, &shapeDef, &rotated);
+
+    DB_PRINTF("Created line world (%.2f,%.2f)-(%.2f,%.2f) len=%.2f angle=%.2f\r\n", wx1, wy1, wx2, wy2, length, angle * 180.0f / M_PI);
+
     return body;
 }
 
