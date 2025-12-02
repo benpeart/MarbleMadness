@@ -124,7 +124,7 @@ void drawNullClock()
 {
 }
 
-void setLED(int x, int y)
+static void setLED(int x, int y)
 {
     int index = XY(x, y);
     leds[index] = blend(leds[index], settings.clockColor, 128);

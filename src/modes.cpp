@@ -6,6 +6,7 @@
 #include "MarbleMadness.h"
 #include "bounce.h"
 #include "Ringer.h"
+#include "life.h"
 #include "MarbleRoller.h"
 #include "MarbleTrack.h"
 #include "pachinko.h"
@@ -38,6 +39,7 @@ MarbleMadnessMode MarbleMadnessLUT[]{
     {ringer_enter, ringer_loop, ringer_leave, "Ringer", true},
     {bounce_enter, bounce_loop, bounce_leave, "Bounce", true},
     {pachinko_enter, pachinko_loop, pachinko_leave, "Pachinko", true},
+    {life_enter, life_loop, life_leave, "Life", true},
     {NULL, mode_xy_fire, NULL, "Fire", true},
     {NULL, mode_xy_matrix, NULL, "Matrix", true},
 #ifdef DEBUG
