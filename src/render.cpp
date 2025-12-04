@@ -57,6 +57,12 @@ uint16_t XY(uint16_t x, uint16_t y)
 #endif                // TOP_LEFT
 }
 
+void setLEDBlendClockColor(int x, int y)
+{
+    int index = XY(x, y);
+    leds[index] = blend(leds[index], settings.clockColor, 128);
+}
+
 #ifdef COMPLEX_SHAPE
 //
 // I have implemented two different X,Y mapping modes. The first pairs adjacent strips of LEDs into a single x coordinate

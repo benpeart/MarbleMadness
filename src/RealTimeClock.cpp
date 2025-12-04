@@ -35,10 +35,8 @@ struct ClockFace
 ClockFace clockFaceLUT[]{
     {drawNullClock, "Off"},
     {drawDigitalClock, "Digital"},
-    {drawAnalogClock, "Analog"}
-};
+    {drawAnalogClock, "Analog"}};
 int clockFaces = (sizeof(clockFaceLUT) / sizeof(clockFaceLUT[0])); // total number of valid face names in table
-
 
 void drawClock()
 {
@@ -57,13 +55,13 @@ int setClockFace(const char *clockFace)
 {
     for (int x = 0; x < clockFaces; x++)
     {
-      if (String(clockFaceLUT[x].faceName).equalsIgnoreCase(String(clockFace)))
-      {
-        settings.clockFace = x;
-        leds_dirty = true;
-        DB_PRINTF("setClockFace = %s\r\n", clockFace);
-        break;
-      }
+        if (String(clockFaceLUT[x].faceName).equalsIgnoreCase(String(clockFace)))
+        {
+            settings.clockFace = x;
+            leds_dirty = true;
+            DB_PRINTF("setClockFace = %s\r\n", clockFace);
+            break;
+        }
     }
 
     return settings.clockFace;
@@ -124,59 +122,14 @@ void drawNullClock()
 {
 }
 
-static void setLED(int x, int y)
-{
-    int index = XY(x, y);
-    leds[index] = blend(leds[index], settings.clockColor, 128);
-}
-
 void drawDigitalClock()
 {
-    struct tm timeinfo;
-    static int digit1 = -1, digit2 = -1, digit3 = -1, digit4 = -1;
-
-    if (getLocalTime(&timeinfo))
-    {
-        int tmp;
-
-        // compute first digit of hours
-        tmp = ConvertMilitaryTime(timeinfo.tm_hour);
-        tmp /= 10;
-        if (digit1 != tmp)
-        {
-            digit1 = tmp;
-            leds_dirty = true;
-        }
-
-        // compute second digit of hours
-        tmp = ConvertMilitaryTime(timeinfo.tm_hour) % 10;
-        if (digit2 != tmp)
-        {
-            digit2 = tmp;
-            leds_dirty = true;
-        }
-
-        // compute first digit of minutes
-        tmp = timeinfo.tm_min;
-        tmp /= 10;
-        if (digit3 != tmp)
-        {
-            digit3 = tmp;
-            leds_dirty = true;
-        }
-
-        // compute second digit of minutes
-        tmp = timeinfo.tm_min % 10;
-        if (digit4 != tmp)
-        {
-            digit4 = tmp;
-            leds_dirty = true;
-            DB_PRINTLN(&timeinfo, "%A, %B %d %Y %I:%M:%S %p");
-        }
-
-        if (leds_dirty)
-            displayNumbers(digit1, digit2, digit3, digit4, setLED);
-    }
+    // Center a 17 x 5 column layout in a NUM_COLS x NUM_ROWS grid
+    const int totalW = 17;
+    const int totalH = 5;
+    const int startX = (NUM_COLS - totalW) / 2; // = 1
+    const int startY = (NUM_ROWS - totalH) / 2; // = 7
+    drawDigitalClock(startX, startY, setLEDBlendClockColor);
 }
 
 // https://wokwi.com/arduino/projects/286985034843292172
@@ -306,7 +259,7 @@ void drawAnalogClock()
         leds[index] = BlendColors(leds[index]);
 #endif
     }
-#endif // NEVER    
+#endif // NEVER
 
     if (getLocalTime(&timeinfo))
     {
@@ -341,4 +294,54 @@ void drawAnalogClock()
             displayHands(hours, minutes, seconds, settings.clockColor);
     }
 }
+
+void drawDigitalClock(int xOffset, int yOffset, setLEDFunction setLED)
+{
+    struct tm timeinfo;
+    static int digit1 = -1, digit2 = -1, digit3 = -1, digit4 = -1;
+
+    if (getLocalTime(&timeinfo))
+    {
+        int tmp;
+
+        // compute first digit of hours
+        tmp = ConvertMilitaryTime(timeinfo.tm_hour);
+        tmp /= 10;
+        if (digit1 != tmp)
+        {
+            digit1 = tmp;
+            leds_dirty = true;
+        }
+
+        // compute second digit of hours
+        tmp = ConvertMilitaryTime(timeinfo.tm_hour) % 10;
+        if (digit2 != tmp)
+        {
+            digit2 = tmp;
+            leds_dirty = true;
+        }
+
+        // compute first digit of minutes
+        tmp = timeinfo.tm_min;
+        tmp /= 10;
+        if (digit3 != tmp)
+        {
+            digit3 = tmp;
+            leds_dirty = true;
+        }
+
+        // compute second digit of minutes
+        tmp = timeinfo.tm_min % 10;
+        if (digit4 != tmp)
+        {
+            digit4 = tmp;
+            leds_dirty = true;
+            DB_PRINTLN(&timeinfo, "%A, %B %d %Y %I:%M:%S %p");
+        }
+
+        if (leds_dirty)
+            drawTime17x5(digit1, digit2, digit3, digit4, xOffset, yOffset, setLED);
+    }
+}
+
 #endif // TIME

@@ -346,7 +346,7 @@ void physicsRoller_loop()
             if (xSemaphoreTake(worldMutex, portMAX_DELAY))
             {
                 // Spawn a marble at the start of the track
-                marbles[marbleCount++] = CreateCircle(0, HEIGHT - 1, 0.45f, 0.0f, 0.85f);
+                marbles[marbleCount++] = CreateCircle(0, HEIGHT - 1, 0.5f, 0.0f, 0.85f);
                 xSemaphoreGive(worldMutex);
             }
         }

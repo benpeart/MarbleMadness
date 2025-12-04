@@ -31,8 +31,6 @@ b2BodyId CreateWall(float x, float y, float w, float h)
     return body;
 }
 
-
-
 b2BodyId CreateCircle(float x, float y, float r, float friction, float restitution, b2BodyType type)
 {
     // Create the body

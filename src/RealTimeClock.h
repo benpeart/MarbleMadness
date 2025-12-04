@@ -11,6 +11,8 @@ CRGB setClockColor(const CRGB clockColor);
 
 extern int clockFaces; // total number of valid face names in table
 
+void drawDigitalClock(int xOffset, int yOffset, setLEDFunction setLED);
+
 #endif // TIME
 
 #endif // REALTIMECLOCK_H

@@ -13,6 +13,7 @@
 #include "physicsRoller.h"
 #include "XYfire.h"
 #include "xymatrix.h"
+#include "connect4.h"
 
 #ifdef TIME
 #include "RealTimeClock.h"
@@ -40,6 +41,7 @@ MarbleMadnessMode MarbleMadnessLUT[]{
     {bounce_enter, bounce_loop, bounce_leave, "Bounce", true},
     {pachinko_enter, pachinko_loop, pachinko_leave, "Pachinko", true},
     {life_enter, life_loop, life_leave, "Life", true},
+    {connect4_enter, connect4_loop, connect4_leave, "Connect4 Clock", true},
     {NULL, mode_xy_fire, NULL, "Fire", true},
     {NULL, mode_xy_matrix, NULL, "Matrix", true},
 #ifdef DEBUG

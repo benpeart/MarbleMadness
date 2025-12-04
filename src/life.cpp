@@ -511,12 +511,6 @@ void LoadRandomPattern(life_t *life)
     generation = 0;
 }
 
-static void setLED(int x, int y)
-{
-    int index = XY(x, y);
-    leds[index] = blend(leds[index], settings.clockColor, 128);
-}
-
 void draw_counter(int count)
 {
     // display the generation count in the lower right corner
@@ -527,12 +521,10 @@ void draw_counter(int count)
     const int startY = (NUM_ROWS - 5);
     int x = NUM_COLS - 15 + 8;
 
-    //    drawDigit3x5(n1, x, startY, setLED); x += 3; x += 1;
-    //    drawDigit3x5(n2, x, startY, setLED); x += 3; x += 1;
-    drawDigit3x5(n3, x, startY, setLED);
-    x += 3;
-    x += 1;
-    drawDigit3x5(n4, x, startY, setLED);
+    //    drawDigit3x5(n1, x, startY, setLEDBlendClockColor); x += 3; x += 1;
+    //    drawDigit3x5(n2, x, startY, setLEDBlendClockColor); x += 3; x += 1;
+    drawDigit3x5(n3, x, startY, setLEDBlendClockColor); x += 3; x += 1;
+    drawDigit3x5(n4, x, startY, setLEDBlendClockColor);
 }
 
 void life_enter()

@@ -5,6 +5,8 @@
 #include "physics.h"
 #include "debug.h"
 
+// TODO: detect a stuck marble and nudge it?
+
 // Create Box2D world with gravity
 #define MARBLE_COUNT 6
 static b2BodyId marbles[MARBLE_COUNT];
@@ -63,8 +65,8 @@ static void setupWorld()
     world = b2CreateWorld(&worldDef);
 
     //    CreateWall((float)WIDTH / 2.0f, -0.125f, (float)WIDTH + 0.5f, 0.25f);             // floor
-    CreateWall(-0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);                  // left wall
-    CreateWall((float)WIDTH - 1.0f + 0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);    // right wall
+    CreateWall(-0.5f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);                  // left wall
+    CreateWall((float)WIDTH - 1.0f + 0.5f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f);    // right wall
 
     // Create pins based on the pinPattern array
     for (uint8_t y = 0; y < HEIGHT; y++)
@@ -84,7 +86,7 @@ static void setupWorld()
     for (int i = 0; i < MARBLE_COUNT; ++i)
     {
         float x = (float)(random(0, WIDTH));
-        marbles[i] = CreateCircle(x, (float)HEIGHT, 0.45f);
+        marbles[i] = CreateCircle(x, (float)HEIGHT, 0.5f);
 
         // Give each an initial push
         float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s

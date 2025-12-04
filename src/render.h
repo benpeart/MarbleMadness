@@ -28,6 +28,10 @@ extern CRGB leds[];
 // origin (x = 0, y = 0) is at top left
 uint16_t XY(uint16_t x, uint16_t y);
 
+// function to set an LED at (x,y) to a blended clock color
+typedef void (*setLEDFunction)(int x, int y);
+void setLEDBlendClockColor(int x, int y);
+
 typedef enum
 {
     MARBLE_ROLLER,      // Marbles roll in one at a time to fill the screen with new image

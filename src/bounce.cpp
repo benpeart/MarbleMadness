@@ -5,14 +5,28 @@
 #include "bounce.h"
 
 // Track our marbles so we can move them around
-#ifdef CONNECT_FOUR
-#define MARBLE_COUNT 19
-#else
 #define MARBLE_COUNT 8
-#endif // CONNECT_FOUR
 static b2BodyId marbles[MARBLE_COUNT];
 
-// ----- Physics setup -----
+static void ResetMarbles()
+{
+    // Move marbles to new random positions above the visible area
+    for (int i = 0; i < MARBLE_COUNT; ++i)
+    {
+        float x = (float)(random(0, WIDTH));
+        float y = (float)(HEIGHT - random(1, HEIGHT / 4));
+        b2Vec2 position = b2Vec2{x, y};
+        b2Rot rotation = b2MakeRot(0.0f);
+        b2Body_SetTransform(marbles[i], position, rotation); // Move to new location
+
+        // Give each an initial push
+        float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s
+        float vy = (random(10, 151)) / 50.0f;   // ~[0.2, 3] m/s upward
+        b2Body_SetLinearVelocity(marbles[i], (b2Vec2){vx, vy});
+        b2Body_SetAngularVelocity(marbles[i], 0.0f); // Stop spin
+    }
+}
+
 static void setupWorld()
 {
     // create the world
@@ -27,18 +41,7 @@ static void setupWorld()
     // Spawn marbles at random positions above the visible area
     for (int i = 0; i < MARBLE_COUNT; ++i)
     {
-#ifdef CONNECT_FOUR
-        marbles[i] = CreateCircle(i, HEIGHT - 1, 0.45f, 0.3f, 0.85f);
-#else
-        float x = (float)(random(0, WIDTH));
-        float y = (float)(HEIGHT - random(1, HEIGHT / 4));
-        marbles[i] = CreateCircle(x, HEIGHT - 1, 0.45f, 0.3f, 0.85f);
-
-        // Give each an initial push
-        float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s
-        float vy = (random(10, 151)) / 50.0f;   // ~[0.2, 3] m/s upward
-        b2Body_SetLinearVelocity(marbles[i], (b2Vec2){vx, vy});
-#endif // CONNECT_FOUR
+        marbles[i] = CreateCircle(0.0f, 0.0f, 0.5f);
     }
 }
 
@@ -48,6 +51,16 @@ void bounce_enter()
     DB_PRINTLN("Entering Bounce mode");
     setupWorld();
     physics_enter();
+
+    // Small delay to ensure physics task is running
+    vTaskDelay(pdMS_TO_TICKS(100));
+
+    // position the marbles (after physics task is running and world is valid)
+    if (xSemaphoreTake(worldMutex, portMAX_DELAY))
+    {
+        ResetMarbles();
+        xSemaphoreGive(worldMutex);
+    }
 }
 
 void bounce_leave()
@@ -98,30 +111,7 @@ void bounce_loop()
         // make sure we can get the world mutex before resetting the world
         if (xSemaphoreTake(worldMutex, portMAX_DELAY))
         {
-#ifdef CONNECT_FOUR
-            // Move marbles into new positions along top row
-            for (int i = 0; i < MARBLE_COUNT; ++i)
-            {
-                b2Body_SetTransform(marbles[i], (b2Vec2){(float)i, (float)(HEIGHT - 1)}, b2MakeRot(0.0f)); // Move to new location
-                b2Body_SetLinearVelocity(marbles[i], (b2Vec2){0, 0});
-                b2Body_SetAngularVelocity(marbles[i], 0.0f); // Stop spin
-            }
-#else
-            // Move marbles to new random positions above the visible area
-            for (int i = 0; i < MARBLE_COUNT; ++i)
-            {
-                float x = (float)(random(0, WIDTH));
-                float y = (float)(HEIGHT - random(1, HEIGHT / 4));
-                b2Vec2 newPos = {x, y};
-                b2Body_SetTransform(marbles[i], newPos, b2MakeRot(0.0f)); // Move to new location
-
-                // Give each an initial push
-                float vx = (random(-100, 101)) / 50.0f; // ~[-2, 2] m/s
-                float vy = (random(10, 151)) / 50.0f;   // ~[0.2, 3] m/s upward
-                b2Body_SetLinearVelocity(marbles[i], (b2Vec2){vx, vy});
-                b2Body_SetAngularVelocity(marbles[i], 0.0f); // Stop spin
-            }
-#endif // CONNECT_FOUR
+            ResetMarbles();
             xSemaphoreGive(worldMutex);
         }
     }

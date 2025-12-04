@@ -84,9 +84,9 @@ static void setupWorld()
     CreateWall((float)WIDTH - 1.0f + 0.25f, (float)HEIGHT / 2.0f, 0.25f, (float)HEIGHT + 2.0f); // right wall
 #endif
     // spawn the marbles
-    marbles[0] = CreateCircle(0, 0, 0.9f, 0.3f, 0.85f);
+    marbles[0] = CreateCircle(0, 0, 0.9f); // shooter marble
     for (int i = 1; i < MARBLE_COUNT; ++i)
-        marbles[i] = CreateCircle(0, 0, 0.45f, 0.3f, 0.85f);
+        marbles[i] = CreateCircle(0, 0, 0.5f);
 
     // now move the marbles into position
     ResetMarbles();
